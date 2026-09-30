@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Especie, EspecieScraped, EspecieSugestao, Planta, CreatePlantaRequest, DiarioNotaItem, CriarDiarioNotaRequest, AnaliseSaudeIaResponse, DiarioBordoEtapaResponse } from '../models/agrotech.models';
@@ -16,40 +16,46 @@ export class AgroTechService {
     return environment.apiUrl;
   }
 
+  private get defaultHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Bypass-Tunnel-Reminder': 'true'
+    });
+  }
+
   constructor(private http: HttpClient) {}
 
   getSugestoes(query: string): Observable<EspecieSugestao[]> {
     console.log(`[AgroTechService] 🔍 Solicitando sugestões para query="${query}" -> ${this.apiUrl}/especies/sugestoes`);
     const params = new HttpParams().set('query', query);
-    return this.http.get<EspecieSugestao[]>(`${this.apiUrl}/especies/sugestoes`, { params }).pipe(
+    return this.http.get<EspecieSugestao[]>(`${this.apiUrl}/especies/sugestoes`, { params, headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Sugestões recebidas:`, res))
     );
   }
 
   scrapeEspecie(nomeBusca: string, nomeCientifico?: string): Observable<EspecieScraped> {
     console.log(`[AgroTechService] 🤖 Solicitando scraping botânico para "${nomeBusca}" (${nomeCientifico || 'sem nome científico'}) -> ${this.apiUrl}/especies/scraping`);
-    return this.http.post<EspecieScraped>(`${this.apiUrl}/especies/scraping`, { nomeBusca, nomeCientifico }).pipe(
+    return this.http.post<EspecieScraped>(`${this.apiUrl}/especies/scraping`, { nomeBusca, nomeCientifico }, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Dados de scraping recebidos:`, res))
     );
   }
 
   getEspecies(): Observable<Especie[]> {
     console.log(`[AgroTechService] 📋 Carregando catálogo de espécies -> ${this.apiUrl}/especies`);
-    return this.http.get<Especie[]>(`${this.apiUrl}/especies`).pipe(
+    return this.http.get<Especie[]>(`${this.apiUrl}/especies`, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Total espécies recebidas: ${res.length}`))
     );
   }
 
   createEspecie(especie: Partial<Especie>): Observable<Especie> {
     console.log(`[AgroTechService] ➕ Criando nova espécie no banco:`, especie);
-    return this.http.post<Especie>(`${this.apiUrl}/especies`, especie).pipe(
+    return this.http.post<Especie>(`${this.apiUrl}/especies`, especie, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Espécie criada com ID=${res.id}`))
     );
   }
 
   updateEspecie(id: string, especie: Partial<Especie>): Observable<Especie> {
     console.log(`[AgroTechService] ✏️ Atualizando espécie ID=${id}:`, especie);
-    return this.http.put<Especie>(`${this.apiUrl}/especies/${id}`, especie).pipe(
+    return this.http.put<Especie>(`${this.apiUrl}/especies/${id}`, especie, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Espécie atualizada com sucesso!`))
     );
   }
@@ -58,40 +64,40 @@ export class AgroTechService {
     console.log(`[AgroTechService] 🖼️ Enviando imagem da espécie para -> ${this.apiUrl}/uploads/especie-imagem`);
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<{ url: string }>(`${this.apiUrl}/uploads/especie-imagem`, formData).pipe(
+    return this.http.post<{ url: string }>(`${this.apiUrl}/uploads/especie-imagem`, formData, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Imagem salva em: ${res.url}`))
     );
   }
 
   getPlantas(): Observable<Planta[]> {
     console.log(`[AgroTechService] 🌿 Carregando lista de plantas -> ${this.apiUrl}/plantas`);
-    return this.http.get<Planta[]>(`${this.apiUrl}/plantas`).pipe(
+    return this.http.get<Planta[]>(`${this.apiUrl}/plantas`, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Total plantas cadastradas: ${res.length}`))
     );
   }
 
   getPlantaById(id: string): Observable<Planta> {
     console.log(`[AgroTechService] 🔍 Buscando planta ID=${id}`);
-    return this.http.get<Planta>(`${this.apiUrl}/plantas/${id}`);
+    return this.http.get<Planta>(`${this.apiUrl}/plantas/${id}`, { headers: this.defaultHeaders });
   }
 
   createPlanta(request: CreatePlantaRequest): Observable<Planta> {
     console.log(`[AgroTechService] 💾 Salvando nova planta no PostgreSQL:`, request);
-    return this.http.post<Planta>(`${this.apiUrl}/plantas`, request).pipe(
+    return this.http.post<Planta>(`${this.apiUrl}/plantas`, request, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Planta salva com sucesso! ID=${res.id}`))
     );
   }
 
   updatePlanta(id: string, request: CreatePlantaRequest): Observable<Planta> {
     console.log(`[AgroTechService] ✏️ Atualizando planta ID=${id}:`, request);
-    return this.http.put<Planta>(`${this.apiUrl}/plantas/${id}`, request).pipe(
+    return this.http.put<Planta>(`${this.apiUrl}/plantas/${id}`, request, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Planta atualizada com sucesso!`))
     );
   }
 
   deletePlanta(id: string): Observable<void> {
     console.log(`[AgroTechService] 🗑️ Deletando planta ID=${id}`);
-    return this.http.delete<void>(`${this.apiUrl}/plantas/${id}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/plantas/${id}`, { headers: this.defaultHeaders }).pipe(
       tap(() => console.log(`[AgroTechService] ✅ Planta excluída!`))
     );
   }
@@ -112,25 +118,25 @@ export class AgroTechService {
     instrucoesManejo?: string | null;
   }): Observable<{ resposta: string }> {
     console.log(`[AgroTechService] 💬 Enviando pergunta para a IA sobre a etapa ${request.etapaNumero}: "${request.perguntaUsuario}"`);
-    return this.http.post<{ resposta: string }>(`${this.apiUrl}/especies/chat-etapa`, request);
+    return this.http.post<{ resposta: string }>(`${this.apiUrl}/especies/chat-etapa`, request, { headers: this.defaultHeaders });
   }
 
   // ─── Diário de Bordo & Análise Fitossanitária IA ─────────────────────────────
 
   getDiarioBordoEtapa(plantaId: string, etapaNumero: number): Observable<DiarioBordoEtapaResponse> {
-    return this.http.get<DiarioBordoEtapaResponse>(`${this.apiUrl}/plantas/${plantaId}/diario/${etapaNumero}`);
+    return this.http.get<DiarioBordoEtapaResponse>(`${this.apiUrl}/plantas/${plantaId}/diario/${etapaNumero}`, { headers: this.defaultHeaders });
   }
 
   adicionarNotaDiario(plantaId: string, payload: CriarDiarioNotaRequest): Observable<DiarioNotaItem> {
-    return this.http.post<DiarioNotaItem>(`${this.apiUrl}/plantas/${plantaId}/diario`, payload);
+    return this.http.post<DiarioNotaItem>(`${this.apiUrl}/plantas/${plantaId}/diario`, payload, { headers: this.defaultHeaders });
   }
 
   excluirNotaDiario(plantaId: string, notaId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/plantas/${plantaId}/diario/${notaId}`);
+    return this.http.delete<void>(`${this.apiUrl}/plantas/${plantaId}/diario/${notaId}`, { headers: this.defaultHeaders });
   }
 
   analisarSaudeDiario(plantaId: string, etapaNumero: number, payload: any): Observable<AnaliseSaudeIaResponse> {
     console.log(`[AgroTechService] 🩺 Solicitando análise fitossanitária de saúde para PlantaId=${plantaId} Etapa=${etapaNumero}`);
-    return this.http.post<AnaliseSaudeIaResponse>(`${this.apiUrl}/plantas/${plantaId}/diario/${etapaNumero}/analisar`, payload);
+    return this.http.post<AnaliseSaudeIaResponse>(`${this.apiUrl}/plantas/${plantaId}/diario/${etapaNumero}/analisar`, payload, { headers: this.defaultHeaders });
   }
 }

@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://generate-pros-caps-shaw.trycloudflare.com/api' // Túnel HTTPS seguro para o backend Rancher local
+  apiUrl: 'https://nine-insects-tie.loca.lt/api' // Túnel HTTPS seguro para o backend Rancher local
 };
