@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.agrotech.com.br/api' // HTTPS obrigatório em produção com certificado SSL
+  apiUrl: 'http://localhost:5005/api' // Altere para a URL HTTPS do seu tunnel/ngrok ou backend
 };

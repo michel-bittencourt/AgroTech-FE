@@ -8,7 +8,13 @@ import { Especie, EspecieScraped, EspecieSugestao, Planta, CreatePlantaRequest, 
   providedIn: 'root'
 })
 export class AgroTechService {
-  private apiUrl = environment.apiUrl;
+  get apiUrl(): string {
+    const custom = typeof localStorage !== 'undefined' ? localStorage.getItem('AGROTECH_API_URL') : null;
+    if (custom && custom.trim().length > 0) {
+      return custom.trim().replace(/\/$/, '');
+    }
+    return environment.apiUrl;
+  }
 
   constructor(private http: HttpClient) {}
 
