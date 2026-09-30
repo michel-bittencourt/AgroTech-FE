@@ -1,0 +1,449 @@
+<!-- Top Hero Header -->
+<header class="bg-agrotech-primary text-white py-4 shadow-sm mb-4">
+  <div class="container">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge {{ etapaAtual.corBadge }} rounded-pill px-3 py-1 fw-bold">
+        Etapa {{ etapaAtual.numero }} de 8
+      </span>
+      <span class="text-white-50 small"><i class="fa-solid fa-leaf me-1"></i> Wiki de Cultivo AgroTech</span>
+    </div>
+    <h1 class="h3 mb-0 fw-bold">
+      <i class="fa-solid {{ etapaAtual.icone }} me-2"></i> {{ etapaAtual.titulo }}
+    </h1>
+    <p class="mb-0 text-white-50 small mt-1">
+      Planta: <strong>{{ planta?.apelidoLote }}</strong> | Espécie: <strong>{{ planta?.especieNomePopular }}</strong>
+      <span *ngIf="planta?.especieNomeCientifico" class="fst-italic">({{ planta?.especieNomeCientifico }})</span>
+    </p>
+  </div>
+</header>
+
+<div class="container pb-5" *ngIf="!isLoading && planta">
+  <!-- Bloco de Ações Rápidas -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h6 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-bolt text-warning me-2"></i>Ações Rápidas</h6>
+        <span class="text-muted small">
+          {{ isEditing ? 'Modo de Edição — Personalize as instruções desta etapa' : 'Detalhamento agronômico da etapa ' + etapaAtual.numero + ' do cultivo' }}
+        </span>
+      </div>
+      <div class="d-flex gap-2">
+        <ng-container *ngIf="!isEditing">
+          <button type="button" class="btn btn-primary px-4 rounded-pill fw-medium shadow-sm d-flex align-items-center gap-2" (click)="toggleChatIa()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Pergunte à IA
+          </button>
+          <button type="button" class="btn btn-outline-primary px-4 rounded-pill fw-medium" (click)="iniciarEdicao()">
+            <i class="fa-solid fa-pen-to-square me-1"></i> Editar
+          </button>
+          <button type="button" class="btn btn-outline-secondary px-4 rounded-pill fw-medium" (click)="voltarParaDetalhes()">
+            <i class="fa-solid fa-arrow-left me-1"></i> Voltar
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="isEditing">
+          <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="cancelarEdicao()">Cancelar</button>
+          <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" (click)="salvar()" [disabled]="isSaving">
+            <i class="fa-solid" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-floppy-disk'" class="me-1"></i> {{ isSaving ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOCO INTERATIVO: Pergunte à IA do Cultivo -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 5px solid #16a34a !important;" *ngIf="showChatIa">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h6 class="fw-bold text-success mb-0 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-wand-magic-sparkles text-success fs-5"></i>
+        <span>Agrônomo IA — Dúvidas sobre a Etapa {{ etapaAtual.numero }} ({{ etapaAtual.titulo }})</span>
+      </h6>
+      <button type="button" class="btn-close" (click)="toggleChatIa()"></button>
+    </div>
+
+    <p class="small text-secondary mb-3">
+      Tire suas dúvidas para a etapa de <strong>{{ etapaAtual.titulo }}</strong> da espécie <strong>{{ planta.especieNomePopular }}</strong>. O assistente IA considera todos os parâmetros cadastrados para orientar seu cultivo.
+    </p>
+
+    <div class="input-group mb-3">
+      <input
+        type="text"
+        class="form-control form-control-lg rounded-start-4 border-success-subtle shadow-sm"
+        [(ngModel)]="perguntaIa"
+        (keyup.enter)="enviarPerguntaIa()"
+        placeholder="Ex: Como saber se exagerei na rega nesta fase? Posso usar húmus de minhoca?"
+        [disabled]="isConsultandoIa"
+      />
+      <button
+        type="button"
+        class="btn btn-success px-4 rounded-end-4 shadow-sm fw-bold d-flex align-items-center gap-2"
+        (click)="enviarPerguntaIa()"
+        [disabled]="isConsultandoIa || !perguntaIa.trim()"
+      >
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" *ngIf="isConsultandoIa"></span>
+        <i class="fa-solid fa-paper-plane" *ngIf="!isConsultandoIa"></i>
+        <span>{{ isConsultandoIa ? 'Consultando...' : 'Perguntar' }}</span>
+      </button>
+    </div>
+
+    <!-- Spinner de Carregamento -->
+    <div class="p-3 bg-white rounded-3 border text-center text-success mb-2 shadow-sm" *ngIf="isConsultandoIa">
+      <span class="spinner-border spinner-border-sm me-2 text-success" role="status" aria-hidden="true"></span>
+      <span class="fw-semibold">O Agrônomo IA está analisando a espécie {{ planta.especieNomePopular }} para esta etapa...</span>
+    </div>
+
+    <!-- Mensagem de Erro -->
+    <div class="alert alert-danger rounded-3 py-2 px-3 small mb-2" *ngIf="erroIa">
+      <i class="fa-solid fa-circle-exclamation me-1"></i> {{ erroIa }}
+    </div>
+
+    <!-- Resposta da IA -->
+    <div class="p-4 bg-white rounded-4 border border-success-subtle shadow-sm mt-3" *ngIf="respostaIa">
+      <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold small">
+          <i class="fa-solid fa-robot me-1"></i> Resposta do Agrônomo IA
+        </span>
+        <button type="button" class="btn btn-link btn-sm text-secondary p-0 text-decoration-none" (click)="limparChatIa()">
+          <i class="fa-solid fa-rotate-left me-1"></i> Nova Pergunta
+        </button>
+      </div>
+      <div class="text-dark fs-6 lh-base mb-0" style="white-space: pre-line;">
+        {{ respostaIa }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Stepper de Navegação entre Etapas (1 a 8) -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <div class="row g-2">
+      <div class="col-6 col-md-4 col-lg-3" *ngFor="let stepNum of [1,2,3,4,5,6,7,8]">
+        <button
+          type="button"
+          class="btn w-100 rounded-3 py-2 text-start d-flex align-items-center gap-2"
+          [ngClass]="passoNumero === stepNum ? 'btn-success fw-bold shadow-sm' : 'btn-light text-secondary border border-light-subtle'"
+          (click)="mudarEtapa(stepNum)"
+        >
+          <span class="badge rounded-circle p-1 d-inline-flex align-items-center justify-content-center"
+                [ngClass]="passoNumero === stepNum ? 'bg-white text-success' : 'bg-secondary-subtle text-dark'"
+                style="width: 24px; height: 24px; font-size: 11px;">
+            {{ stepNum }}
+          </span>
+          <span class="small text-truncate" style="font-size: 12px;">{{ getEtapaConfig(stepNum).titulo }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Coluna Principal (Instruções e Guia) -->
+    <div class="col-lg-8">
+      <!-- Card Resumo da Etapa -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+          <h5 class="fw-bold text-success mb-0 d-flex align-items-center gap-2">
+            <i class="fa-solid {{ etapaAtual.icone }} text-success fs-4 me-1"></i>
+            <span>{{ etapaAtual.titulo }} — Resumo</span>
+          </h5>
+          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 small fw-semibold">
+            <i class="fa-solid fa-align-left me-1"></i> Resumo da Etapa
+          </span>
+        </div>
+
+        <!-- MODO LEITURA -->
+        <div *ngIf="!isEditing">
+          <div class="p-3 bg-light rounded-4 border border-light-subtle mb-3">
+            <p class="fs-6 text-dark mb-0 lh-lg" style="white-space: pre-line;">
+              {{ resumoEtapa }}
+            </p>
+          </div>
+        </div>
+
+        <!-- MODO EDIÇÃO -->
+        <div *ngIf="isEditing">
+          <label class="form-label fw-bold text-secondary">Edite o resumo e instruções desta etapa:</label>
+          <textarea
+            class="form-control rounded-3 p-3"
+            rows="6"
+            [(ngModel)]="conteudoEtapaEditavel"
+            placeholder="Digite aqui as instruções detalhadas..."
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- BLOCO: Passo a Passo (Ordem de Execução Numerada) -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 border-start border-4 border-warning">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+          <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-list-ol text-warning fs-4"></i>
+            <span>Passo a Passo</span>
+          </h5>
+          <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-3 py-1 fw-semibold small">
+            <i class="fa-solid fa-arrow-down-1-9 me-1"></i> Ordem de Execução
+          </span>
+        </div>
+
+        <div class="vstack gap-3" *ngIf="passoAPassoItens.length > 0">
+          <div class="d-flex align-items-start gap-3 p-3 bg-light rounded-3 border border-light-subtle shadow-sm" *ngFor="let item of passoAPassoItens">
+            <span class="badge bg-warning text-dark rounded-circle p-2 d-inline-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 32px; height: 32px; flex-shrink: 0;">
+              {{ item.numero }}
+            </span>
+            <span class="text-dark fs-6 lh-base pt-1 fw-medium">{{ item.texto }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="passoAPassoItens.length === 0" class="p-3 bg-light rounded-3 text-muted small">
+          Nenhum passo a passo numerado cadastrado para esta etapa.
+        </div>
+      </div>
+
+      <!-- Dicas Agronômicas & Boas Práticas -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-lightbulb text-warning"></i> Dicas Agronômicas de Sucesso
+        </h5>
+        <div class="vstack gap-3">
+          <div class="d-flex align-items-start gap-3 p-3 bg-success-subtle bg-opacity-25 rounded-3 border border-success-subtle" *ngFor="let dica of etapaAtual.dicas">
+            <i class="fa-solid fa-circle-check text-success mt-1"></i>
+            <span class="text-dark small lh-base">{{ dica }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Erros Comuns a Evitar -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-danger"></i> Erros Comuns a Evitar
+        </h5>
+        <div class="vstack gap-2">
+          <div class="d-flex align-items-start gap-3 p-3 bg-danger-subtle bg-opacity-25 rounded-3 border border-danger-subtle" *ngFor="let erro of etapaAtual.errosComuns">
+            <i class="fa-solid fa-xmark text-danger mt-1"></i>
+            <span class="text-dark small lh-base">{{ erro }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCO: DIÁRIO DE BORDO & REVISÃO DE SAÚDE DA IA (DIRETAMENTE ABAIXO DE ERROS COMUNS) -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <!-- Header do Diário de Bordo -->
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+              <i class="fa-solid fa-book-bookmark text-success fs-4"></i>
+              <span>Diário de Bordo — Etapa {{ etapaAtual.numero }} ({{ etapaAtual.titulo }})</span>
+            </h5>
+            <p class="text-secondary small mb-0">
+              Registre observações do dia a dia (regas, folhas amareladas, brotamento, altura). A IA analisará todo o histórico do diário para avaliar a saúde do cultivo.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-success px-4 py-2 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2"
+            (click)="analisarSaudeDiario()"
+            [disabled]="isAnalisandoSaude || notasDiario.length === 0"
+          >
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" *ngIf="isAnalisandoSaude"></span>
+            <i class="fa-solid fa-wand-magic-sparkles" *ngIf="!isAnalisandoSaude"></i>
+            <span>{{ isAnalisandoSaude ? 'Analisando Saúde...' : 'Analisar Saúde com IA' }}</span>
+          </button>
+        </div>
+
+        <!-- Alertas / Erros -->
+        <div class="alert alert-warning rounded-3 py-2 px-3 small mb-3" *ngIf="erroAnaliseSaude">
+          <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ erroAnaliseSaude }}
+        </div>
+        <div class="alert alert-danger rounded-3 py-2 px-3 small mb-3" *ngIf="erroDiario">
+          <i class="fa-solid fa-circle-exclamation me-1"></i> {{ erroDiario }}
+        </div>
+
+        <!-- REVISÃO & DIAGNÓSTICO DA IA (REVISÃO DE SAÚDE) -->
+        <div class="card border-0 rounded-4 p-4 mb-4 shadow-sm"
+             [ngStyle]="{
+               'background': diagnosticoSaudeIa?.statusSaude === 'ALERTA' ? '#fef2f2' : (diagnosticoSaudeIa?.statusSaude === 'ATENCAO' ? '#fffbeb' : '#f0fdf4'),
+               'border-left': '6px solid ' + (diagnosticoSaudeIa?.statusSaude === 'ALERTA' ? '#ef4444' : (diagnosticoSaudeIa?.statusSaude === 'ATENCAO' ? '#f59e0b' : '#16a34a')) + ' !important'
+             }"
+             *ngIf="diagnosticoSaudeIa">
+          <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa-solid fa-user-doctor fs-4"
+                 [ngClass]="diagnosticoSaudeIa.statusSaude === 'ALERTA' ? 'text-danger' : (diagnosticoSaudeIa.statusSaude === 'ATENCAO' ? 'text-warning' : 'text-success')"></i>
+              <h6 class="fw-bold mb-0 text-dark">
+                Revisão por IA — Diagnóstico de Saúde da Planta
+              </h6>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge rounded-pill px-3 py-2 fw-bold"
+                    [ngClass]="diagnosticoSaudeIa.statusSaude === 'ALERTA' ? 'bg-danger text-white' : (diagnosticoSaudeIa.statusSaude === 'ATENCAO' ? 'bg-warning text-dark' : 'bg-success text-white')">
+                <i class="fa-solid me-1" [ngClass]="diagnosticoSaudeIa.statusSaude === 'ALERTA' ? 'fa-circle-xmark' : (diagnosticoSaudeIa.statusSaude === 'ATENCAO' ? 'fa-triangle-exclamation' : 'fa-circle-check')"></i>
+                Status: {{ diagnosticoSaudeIa.statusSaude === 'ALERTA' ? 'ALERTA FITOSSANITÁRIO' : (diagnosticoSaudeIa.statusSaude === 'ATENCAO' ? 'REQUER ATENÇÃO' : 'EXCELENTE / SAUDÁVEL') }}
+              </span>
+              <span class="text-muted small">
+                {{ diagnosticoSaudeIa.dataAnalise | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-success rounded-pill fw-bold shadow-sm d-flex align-items-center gap-1 ms-md-2"
+                (click)="registrarDiagnosticoIaNoDiario()"
+                [disabled]="isRegistrandoDiagnostico"
+                title="Salvar este diagnóstico como uma nota do diário de bordo marcada com a tag IA"
+              >
+                <i class="fa-solid" [ngClass]="isRegistrandoDiagnostico ? 'fa-spinner fa-spin' : 'fa-bookmark'"></i>
+                <span>{{ isRegistrandoDiagnostico ? 'Registrando...' : 'Registrar no Diário' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="alert alert-success py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2" *ngIf="sucessoRegistroIa">
+            <i class="fa-solid fa-circle-check fs-6 text-success"></i>
+            <span>Diagnóstico registrado com sucesso no Diário de Bordo como histórico de IA!</span>
+          </div>
+
+          <!-- Texto do Diagnóstico -->
+          <p class="fs-6 text-dark lh-base mb-3" style="white-space: pre-line;">
+            {{ diagnosticoSaudeIa.diagnosticoTexto }}
+          </p>
+
+          <div class="row g-3" *ngIf="diagnosticoSaudeIa.observacoes.length > 0 || diagnosticoSaudeIa.recomendacoes.length > 0">
+            <!-- Observações Identificadas -->
+            <div class="col-md-6" *ngIf="diagnosticoSaudeIa.observacoes.length > 0">
+              <div class="p-3 bg-white rounded-3 border h-100 shadow-sm">
+                <h6 class="fw-bold text-secondary mb-2 small"><i class="fa-solid fa-magnifying-glass me-1"></i> Observações Técnicas Detectadas:</h6>
+                <ul class="mb-0 ps-3 small text-dark vstack gap-1">
+                  <li *ngFor="let obs of diagnosticoSaudeIa.observacoes">{{ obs }}</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Recomendações de Ação -->
+            <div class="col-md-6" *ngIf="diagnosticoSaudeIa.recomendacoes.length > 0">
+              <div class="p-3 bg-white rounded-3 border h-100 shadow-sm">
+                <h6 class="fw-bold text-success mb-2 small"><i class="fa-solid fa-clipboard-check me-1"></i> Recomendações Práticas de Ação:</h6>
+                <ul class="mb-0 ps-3 small text-dark vstack gap-1">
+                  <li *ngFor="let rec of diagnosticoSaudeIa.recomendacoes" class="fw-medium">{{ rec }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INPUT PARA NOVA NOTA NO DIÁRIO COM DATA/HORA EDITÁVEL -->
+        <div class="card border border-light-subtle rounded-4 p-3 mb-4 bg-light shadow-sm">
+          <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+            <label class="form-label fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+              <i class="fa-solid fa-pen text-primary"></i> Registrar Nova Observação no Diário
+            </label>
+            <div class="d-flex align-items-center gap-2">
+              <span class="small text-secondary fw-semibold"><i class="fa-regular fa-calendar text-primary me-1"></i> Data e Hora:</span>
+              <input
+                type="datetime-local"
+                class="form-control form-control-sm rounded-3 border-secondary-subtle fw-medium bg-white"
+                style="width: 210px;"
+                [(ngModel)]="novaNotaData"
+                [disabled]="isAdicionandoNota"
+              />
+            </div>
+          </div>
+          <div class="input-group">
+            <textarea
+              class="form-control rounded-start-3 border-secondary-subtle"
+              rows="2"
+              [(ngModel)]="novaNotaDiarioText"
+              placeholder="Ex: Dia 12 - Notei folhas levemente amareladas. Reguei com 150ml de água às 8h."
+              [disabled]="isAdicionandoNota"
+            ></textarea>
+            <button
+              type="button"
+              class="btn btn-primary px-4 fw-bold rounded-end-3 d-flex align-items-center gap-2"
+              (click)="adicionarNotaDiario()"
+              [disabled]="isAdicionandoNota || !novaNotaDiarioText.trim()"
+            >
+              <i class="fa-solid" [ngClass]="isAdicionandoNota ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+              <span>{{ isAdicionandoNota ? 'Salvando...' : 'Adicionar Nota' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- HISTÓRICO DE ANOTAÇÕES DO DIÁRIO -->
+        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center justify-content-between">
+          <span><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i> Histórico de Registros da Etapa ({{ notasDiario.length }})</span>
+          <span class="text-muted small font-weight-normal" *ngIf="notasDiario.length > 0">Do mais recente para o mais antigo</span>
+        </h6>
+
+        <div class="vstack gap-3" *ngIf="notasDiario.length > 0">
+          <div class="p-3 rounded-3 border d-flex align-items-start justify-content-between gap-3 shadow-sm"
+               [ngClass]="item.isIa ? 'bg-primary-subtle bg-opacity-10 border-primary-subtle' : 'bg-light border-light-subtle'"
+               *ngFor="let item of notasDiario">
+            <div class="d-flex align-items-start gap-3">
+              <div class="d-flex align-items-center gap-2 flex-wrap" style="flex-shrink: 0;">
+                <span *ngIf="item.isIa" class="badge bg-primary text-white rounded-pill px-3 py-2 small fw-bold shadow-sm">
+                  <i class="fa-solid fa-robot me-1"></i> IA
+                </span>
+                <span class="badge bg-secondary-subtle text-dark border border-secondary-subtle rounded-pill px-3 py-2 small fw-semibold">
+                  <i class="fa-regular fa-calendar-check me-1 text-primary"></i> {{ item.criadoEm | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+              <p class="text-dark mb-0 fs-6 lh-base pt-1" style="white-space: pre-line;">{{ item.textoNota }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-link btn-sm text-danger text-decoration-none p-0 opacity-75 opacity-100-hover"
+              (click)="excluirNotaDiario(item.id)"
+              title="Excluir nota do diário"
+            >
+              <i class="fa-solid fa-trash-can fs-6"></i>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="notasDiario.length === 0" class="p-4 bg-light rounded-4 text-center text-muted">
+          <i class="fa-solid fa-book-open fa-2x mb-2 text-secondary opacity-50"></i>
+          <p class="mb-0 small fw-medium">Nenhum registro adicionado no Diário de Bordo para esta etapa ainda.</p>
+          <span class="text-muted small">Digite sua primeira observação acima para acompanhar a evolução da sua planta.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coluna Lateral (Materiais & Parâmetros Agronômicos) -->
+    <div class="col-lg-4">
+      <!-- Foto da Espécie -->
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white" *ngIf="planta.imagemUrl">
+        <img [src]="planta.imagemUrl" alt="Foto da espécie" class="w-100" style="height: 180px; object-fit: cover;" />
+        <div class="p-2 bg-light text-center">
+          <span class="small fw-bold text-dark"><i class="fa-solid fa-leaf text-success me-1"></i> {{ planta.especieNomePopular }}</span>
+        </div>
+      </div>
+      <!-- Materiais Recomendados -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-screwdriver-wrench text-primary"></i> Materiais Recomendados
+        </h6>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge bg-light text-dark border border-secondary-subtle px-3 py-2 rounded-pill small font-weight-normal" *ngFor="let item of etapaAtual.materiaisRecomendados">
+            <i class="fa-solid fa-check text-success me-1"></i> {{ item }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Parâmetros da Planta -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <h6 class="fw-bold text-success mb-3 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-sliders"></i> Parâmetros Ideais do Cultivo
+        </h6>
+        <div class="vstack gap-3">
+          <div class="p-3 bg-light rounded-3">
+            <div class="d-flex align-items-center mb-1">
+              <i class="fa-solid fa-droplet text-primary me-2"></i>
+              <span class="small text-muted">Umidade Solo Ideal</span>
+            </div>
+            <strong class="h5 fw-bold text-dark mb-0 ms-4">{{ planta.umidadeSoloMin }}% - {{ planta.umidadeSoloMax }}%</strong>
+          </div>
+
+          <div class="p-3 bg-light rounded-3">
+            <div class="d-flex align-items-center mb-1">
+              <i class="fa-solid fa-temperature-half text-warning me-2"></i>
+              <span class="small text-muted">Temp. Recomendada</span>
+            </div>
+            <strong class="h5 fw-bold text-dark mb-0 ms-4">{{ planta.temperaturaMin }}°C - {{ planta.temperaturaMax }}°C</strong>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>

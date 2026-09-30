@@ -1,0 +1,312 @@
+<!-- Header -->
+<header class="bg-agrotech-primary text-white py-4 shadow-sm mb-4">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fa-solid fa-seedling me-2"></i> AgroTech — Cadastro de Cultivo</h1>
+      <p class="mb-0 text-white-50 small">Preenchimento assistido por IA botânica</p>
+    </div>
+    <button class="btn btn-outline-light rounded-pill px-4" (click)="voltar()">
+      <i class="fa-solid fa-arrow-left me-1"></i> Voltar
+    </button>
+  </div>
+</header>
+
+<!-- Input de arquivo oculto para o upload de imagem -->
+<input
+  #fileInput
+  type="file"
+  accept="image/jpeg,image/png,image/webp,image/gif"
+  class="d-none"
+  (change)="onImagemSelecionada($event)"
+/>
+
+<div class="container pb-5">
+  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <!-- Bloco de Ações Rápidas -->
+    <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+      <div>
+        <h5 class="fw-bold mb-0 text-dark">Informações da Nova Planta</h5>
+        <span class="text-muted small">Pesquise a espécie para preencher os parâmetros automaticamente</span>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="voltar()">Cancelar</button>
+        <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" (click)="salvar()" [disabled]="isSaving || isUploadingImagem">
+          <i [class]="isSaving ? 'fa-solid fa-circle-notch spin-icon me-1' : 'fa-solid fa-floppy-disk me-1'"></i> {{ isSaving ? 'Cadastrando...' : 'Cadastrar' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Buscador de Nome ou Espécie -->
+    <div class="mb-4">
+      <label class="form-label fw-bold text-dark">
+        <i class="fa-solid fa-magnifying-glass text-success me-1"></i> Nome ou Espécie
+      </label>
+      <div class="input-group input-group-lg shadow-sm rounded-3">
+        <input
+          type="text"
+          class="form-control border-success"
+          placeholder="Digite o nome da planta (ex: Pimenta, Manjericão, Orquídea...)"
+          [(ngModel)]="termoBuscaEspecie"
+          (input)="onSearchChange()"
+          (keydown.enter)="buscarSugestoesIa(); $event.preventDefault()"
+          autocomplete="off"
+        />
+        <button
+          type="button"
+          class="btn btn-success px-4 d-flex align-items-center gap-2 fw-semibold"
+          (click)="buscarSugestoesIa()"
+          [disabled]="isBuscandoSugestoes || isLoadingScraping || !termoBuscaEspecie || !termoBuscaEspecie.trim()"
+        >
+          <i [class]="(isBuscandoSugestoes || isLoadingScraping) ? 'fa-solid fa-circle-notch spin-icon' : 'fa-solid fa-wand-magic-sparkles'"></i>
+          <span>{{ (isBuscandoSugestoes || isLoadingScraping) ? 'Buscando...' : 'Buscar' }}</span>
+        </button>
+      </div>
+
+      <!-- Aviso de Demora na Busca de Sugestões -->
+      <div *ngIf="mensagemDemoraSugestoes" class="alert alert-info py-2 px-3 mt-2 rounded-3 small border-info-subtle shadow-sm d-flex align-items-center gap-2">
+        <i class="fa-solid fa-hourglass-start text-info"></i>
+        <span>{{ mensagemDemoraSugestoes }}</span>
+      </div>
+
+      <!-- Select de Sugestões Botânicas / IA -->
+      <div class="mt-3 p-3 bg-light border border-success-subtle rounded-3 shadow-sm" *ngIf="showSelectSugestoes">
+        <label class="form-label fw-bold text-success mb-2">
+          <i class="fa-solid fa-list-check me-1"></i> Selecione a planta correspondente:
+        </label>
+        <select
+          class="form-select form-select-lg border-success fw-medium text-dark"
+          [(ngModel)]="sugestaoSelecionada"
+          (change)="onSelectSugestaoChange()"
+        >
+          <option [ngValue]="null" disabled selected>-- Escolha uma opção da lista --</option>
+          <option *ngFor="let s of todasSugestoes" [ngValue]="s">
+            🌱 {{ s.nomePopular }} ({{ s.nomeCientifico }})
+          </option>
+        </select>
+        <div class="form-text text-muted mt-2">
+          <i class="fa-solid fa-circle-info text-success me-1"></i>
+          Selecione a espécie para preencher automaticamente as recomendações de solo, rega e o guia de cultivo.
+        </div>
+      </div>
+    </div>
+
+    <!-- Card de Erro com Botão Tentar Novamente -->
+    <div *ngIf="erroScrapingMensagem && !isLoadingScraping" class="alert alert-warning border-warning-subtle shadow-sm rounded-3 p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-warning fs-4"></i>
+        <div>
+          <strong class="d-block text-dark">Consulta botânica temporariamente indisponível</strong>
+          <span class="small text-muted">{{ erroScrapingMensagem }}</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-warning btn-sm px-3 rounded-pill fw-semibold shadow-sm d-flex align-items-center gap-1" (click)="tentarNovamenteScraping()">
+        <i class="fa-solid fa-rotate-right"></i> Tentar Novamente
+      </button>
+    </div>
+
+    <!-- Overlay Animado de Coleta de Dados Botânicos & IA -->
+    <div *ngIf="isLoadingScraping" class="p-4 mb-4 border border-success-subtle rounded-4 shadow text-center position-relative overflow-hidden" style="background: linear-gradient(135deg, #f4fbf7 0%, #e6f6ec 100%);">
+      
+      <!-- Icone / Logo Animado -->
+      <div class="mb-3 d-inline-block position-relative">
+        <div class="spinner-grow text-success" style="width: 3.8rem; height: 3.8rem; animation-duration: 1.2s;" role="status">
+          <span class="visually-hidden">Carregando...</span>
+        </div>
+        <div class="position-absolute top-50 start-50 translate-middle text-success fs-3">
+          <i class="fa-solid fa-seedling fa-bounce"></i>
+        </div>
+      </div>
+
+      <!-- Titulo e Mensagem de Etapa -->
+      <h5 class="fw-bold text-success mb-2 d-flex align-items-center justify-content-center gap-2">
+        <i class="fa-solid fa-wand-magic-sparkles text-warning me-1"></i>
+        <span>{{ mensagemProgresso }}</span>
+      </h5>
+      <p class="text-muted small mb-3">
+        Buscando o máximo de dados oficiais em sites botânicos e refinando com IA Agronômica.
+      </p>
+
+      <!-- Barra de Progresso Animada -->
+      <div class="progress shadow-sm rounded-pill mb-3" style="height: 12px; background-color: #cdecd8;">
+        <div 
+          class="progress-bar bg-success progress-bar-striped progress-bar-animated rounded-pill transition-all" 
+          role="progressbar" 
+          [style.width.%]="progressoPercentual"
+        ></div>
+      </div>
+
+      <!-- Temporizador / Cronometro -->
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-white bg-opacity-75 rounded-3 border border-success-subtle text-secondary small">
+        <span><i class="fa-solid fa-stopwatch me-1 text-success"></i> Tempo decorrido: <strong class="text-dark">{{ tempoDecorridoDisplay }}</strong></span>
+        <span><i class="fa-solid fa-hourglass-half me-1 text-success"></i> Estimado: <strong class="text-dark">{{ tempoEstimadoDisplay }}</strong></span>
+      </div>
+    </div>
+
+    <!-- Form Data -->
+    <div class="row g-3">
+      <!-- Apelido do Lote -->
+      <div class="col-md-12 mb-2">
+        <label class="form-label fw-bold">Apelido / Identificador do Lote</label>
+        <input type="text" class="form-control form-control-lg rounded-3" [(ngModel)]="formData.apelidoLote" placeholder="Ex: Mudas de Manjericão - Vaso 01" required />
+      </div>
+
+      <!-- Parâmetros de Cultivo -->
+      <div class="col-12">
+        <div class="card bg-light border-0 p-3 rounded-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h6 class="fw-bold text-success mb-0"><i class="fa-solid fa-sliders me-1"></i> Parâmetros Ideais de Cultivo (Preenchidos Automática / Editáveis)</h6>
+
+            <!-- Selo de Origem dos Dados / IA -->
+            <span *ngIf="formData.fonteDadosScraping"
+                  [ngStyle]="formData.isGeradoPorIa ? {'background-color': '#ede9fe', 'color': '#5b21b6', 'border': '1px solid #8b5cf6', 'font-weight': '700'} : {}"
+                  [class]="formData.isGeradoPorIa ? 'badge px-3 py-2 rounded-pill shadow-sm' : 'badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill shadow-sm'">
+              <i [class]="formData.isGeradoPorIa ? 'fa-solid fa-wand-magic-sparkles me-1' : 'fa-solid fa-globe me-1 text-success'" [style.color]="formData.isGeradoPorIa ? '#5b21b6' : ''"></i>
+              {{ formData.isGeradoPorIa ? '✨ Obtido via IA (Gemini Pro)' : '🌐 Origem: Base Científica Oficial (GBIF / Flora do Brasil)' }}
+            </span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary">Nome Popular</label>
+              <input type="text" class="form-control" [(ngModel)]="formData.nomePopular" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary">Nome Científico</label>
+              <input type="text" class="form-control" [(ngModel)]="formData.nomeCientifico" />
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Umidade Solo Mín (%)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.umidadeSoloMin" min="0" max="100" />
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Umidade Solo Máx (%)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.umidadeSoloMax" min="0" max="100" />
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Temp. Mín (°C)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.temperaturaMin" />
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Temp. Máx (°C)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.temperaturaMax" />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary">Instruções e Recomendações de Manejo</label>
+              <textarea class="form-control" rows="3" [(ngModel)]="formData.instrucoesManejo"></textarea>
+            </div>
+
+            <!-- Guia de Cultivo Passo a Passo (Receita de Bolo Completa) -->
+            <div class="col-12 mt-4">
+              <div class="p-3 bg-white border rounded-3 shadow-sm">
+                <h6 class="fw-bold text-success mb-3 d-flex align-items-center gap-2">
+                  <i class="fa-solid fa-list-check"></i>
+                  <span>Guia Técnico de Cultivo & Receita de Bolo (Preenchidos pela IA / Editáveis)</span>
+                </h6>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">🌱 Passo 1: Preparo da Semente & Quebra de Dormência</label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo1PreparoSemente" placeholder="Materiais ideais vs. caseiros, hidratação/quebra de dormência e modo de preparo tipo receita de bolo..."></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">🪴 Passo 2: Preparo do Substrato & Sementeira</label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo2PreparoSolo" placeholder="Escolha da sementeira/copinhos, mistura do substrato leve com copos/gramas em balança, drenagem ideal e alternativas..."></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">💧 Passo 3: Semeadura & Germinação</label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo3SemeaduraGerminacao" placeholder="Profundidade exata (cm ou dedos), rega com borrifador, iluminação e modo de fazer..."></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">🌿 Passo 4: Transplante & Aclimatação de Mudas</label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo4TransplanteMudas" placeholder="Contagem de folhas verdadeiras, endurecimento da muda e desencastelar raízes enoveladas no fundo..."></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">☀️ Passo 5: Crescimento, Podas & Nutrição</label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo5CrescimentoManejo" placeholder="Podas apicais/beliscão para multiplicar ramos/frutos, adubação de crescimento e prevenção sanitária..."></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">🌸 Passo 6: Floração, Frutificação & Colheita</label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo6FloracaoColheita" placeholder="Estímulo de floração, polinização, fixação de frutos e ponto ideal de colheita..."></textarea>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <label class="form-label small fw-bold text-success">
+                      <i class="fa-solid fa-sun text-warning me-1"></i> Cuidados do Dia a Dia (Rotina Diária & Prevenção Sanitária)
+                    </label>
+                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.cuidadosDiaADia" placeholder="Rotina diária de checagem de umidade, horários de rega, insolação e inspeção visual preventiva..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload de Imagem (Manual) -->
+      <div class="col-12">
+        <div class="card bg-light border-0 p-3 rounded-3">
+          <h6 class="fw-bold text-dark mb-3">
+            <i class="fa-solid fa-image text-primary me-1"></i> Foto da Espécie
+            <span class="text-muted fw-normal small ms-2">(opcional — apenas upload manual)</span>
+          </h6>
+
+          <div class="d-flex align-items-start gap-4 flex-wrap">
+            <!-- Preview da Imagem -->
+            <div *ngIf="imagemExibicaoUrl" class="position-relative">
+              <img
+                [src]="imagemExibicaoUrl"
+                alt="Preview da espécie"
+                class="rounded-3 shadow-sm border"
+                style="width: 120px; height: 120px; object-fit: cover;"
+              />
+              <button
+                type="button"
+                class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle p-1"
+                style="width: 24px; height: 24px; font-size: 10px; transform: translate(30%, -30%);"
+                (click)="removerImagem()"
+                title="Remover imagem"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Ícone Placeholder quando sem imagem -->
+            <div *ngIf="!imagemExibicaoUrl" class="d-flex align-items-center justify-content-center bg-white rounded-3 border border-dashed shadow-sm"
+                 style="width: 120px; height: 120px; border-style: dashed !important; border-color: #dee2e6 !important;">
+              <div class="text-center text-muted">
+                <i class="fa-solid fa-image fa-2x mb-1 d-block text-secondary opacity-50"></i>
+                <span class="small" style="font-size: 10px;">Sem foto</span>
+              </div>
+            </div>
+
+            <!-- Botões de ação de upload -->
+            <div class="d-flex flex-column gap-2 justify-content-center">
+              <button
+                type="button"
+                class="btn btn-outline-primary px-3 rounded-pill"
+                (click)="abrirSeletorImagem()"
+                [disabled]="isUploadingImagem"
+              >
+                <i [class]="isUploadingImagem ? 'fa-solid fa-circle-notch spin-icon me-1' : 'fa-solid fa-upload me-1'"></i>
+                {{ isUploadingImagem ? 'Enviando...' : (imagemExibicaoUrl ? 'Trocar Foto' : 'Carregar Foto') }}
+              </button>
+              <span *ngIf="imagemExibicaoUrl" class="text-success small">
+                <i class="fa-solid fa-circle-check me-1"></i>Imagem selecionada
+              </span>
+              <span class="text-muted" style="font-size: 11px;">JPG, PNG, WebP · Máx. 5 MB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botões Inferiores -->
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top mt-4">
+      <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="voltar()">Cancelar</button>
+      <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" (click)="salvar()" [disabled]="isSaving || isUploadingImagem">
+        <i [class]="isSaving ? 'fa-solid fa-circle-notch spin-icon me-1' : 'fa-solid fa-floppy-disk me-1'"></i> {{ isSaving ? 'Cadastrando...' : 'Cadastrar' }}
+      </button>
+    </div>
+  </div>
+</div>

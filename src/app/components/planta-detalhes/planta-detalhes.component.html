@@ -1,0 +1,482 @@
+<!-- Input de arquivo oculto para o upload de imagem -->
+<input
+  #fileInput
+  type="file"
+  accept="image/jpeg,image/png,image/webp,image/gif"
+  class="d-none"
+  (change)="onImagemSelecionada($event)"
+/>
+
+<!-- Top Hero Header -->
+<header class="bg-agrotech-primary text-white py-4 shadow-sm mb-4">
+  <div class="container">
+    <h1 class="h3 mb-0 fw-bold">
+      <i class="fa-solid fa-seedling me-2"></i> {{ planta?.apelidoLote || 'Detalhes da Planta' }}
+    </h1>
+    <p class="mb-0 text-white-50 small">
+      <i class="fa-solid fa-leaf me-1"></i> {{ planta?.especieNomePopular }}
+      <span *ngIf="planta?.especieNomeCientifico" class="fst-italic">({{ planta?.especieNomeCientifico }})</span>
+    </p>
+  </div>
+</header>
+
+<div class="container pb-5" *ngIf="!isLoading && planta">
+  <!-- Bloco de Ações Rápidas -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h6 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-bolt text-warning me-2"></i>Ações Rápidas</h6>
+        <span class="text-muted small">
+          {{ isEditing ? 'Modo de Edição — Altere as etapas da Wiki e os parâmetros de cultivo' : 'Modo de Leitura — Wiki completa de cultivo e parâmetros agronômicos' }}
+        </span>
+      </div>
+      <div class="d-flex gap-2">
+        <ng-container *ngIf="!isEditing">
+          <button type="button" class="btn btn-outline-primary px-4 rounded-pill fw-medium" (click)="iniciarEdicao()">
+            <i class="fa-solid fa-pen-to-square me-1"></i> Editar
+          </button>
+          <button type="button" class="btn btn-outline-danger px-4 rounded-pill fw-medium" (click)="confirmarExclusao()">
+            <i class="fa-solid fa-trash-can me-1"></i> Excluir
+          </button>
+          <button type="button" class="btn btn-outline-secondary px-4 rounded-pill fw-medium" (click)="voltar()">
+            <i class="fa-solid fa-arrow-left me-1"></i> Voltar
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="isEditing">
+          <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="cancelarEdicao()">Cancelar</button>
+          <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" (click)="salvar()" [disabled]="isSaving">
+            <i class="fa-solid" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-floppy-disk'" class="me-1"></i> {{ isSaving ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODO LEITURA (READ-ONLY) -->
+  <div *ngIf="!isEditing" class="row g-4">
+    <!-- Visão Geral do Lote -->
+    <div class="col-md-5">
+      <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-white">
+        <div *ngIf="planta.imagemUrl" class="mb-3 rounded-3 overflow-hidden shadow-sm">
+          <img [src]="planta.imagemUrl" alt="Foto de {{ planta.especieNomePopular }}" class="w-100" style="height: 160px; object-fit: cover;" />
+        </div>
+        <div class="d-flex align-items-center mb-3">
+          <div class="icon-shape bg-success-subtle text-success rounded-circle p-3 me-3" *ngIf="!planta.imagemUrl">
+            <i class="fa-solid fa-seedling fa-2x"></i>
+          </div>
+          <div>
+            <h4 class="fw-bold mb-0 text-dark">{{ planta.apelidoLote }}</h4>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 mt-1">
+              <i class="fa-solid fa-leaf me-1"></i> {{ planta.especieNomePopular }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="my-3 text-muted opacity-25" />
+
+        <div class="vstack gap-3">
+          <div>
+            <span class="text-muted small d-block">Nome Científico</span>
+            <strong class="text-dark fst-italic">{{ planta.especieNomeCientifico || 'Não informado' }}</strong>
+          </div>
+          <div>
+            <span class="text-muted small d-block">Cadastrado em</span>
+            <span class="text-dark">{{ planta.criadoEm | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div>
+            <span class="text-muted small d-block">Status do Lote</span>
+            <span class="badge bg-success rounded-pill px-3 py-1 fw-medium"><i class="fa-solid fa-circle-check me-1"></i> Ativo</span>
+          </div>
+          <div *ngIf="planta.fonteDadosScraping">
+            <span class="text-muted small d-block mb-1">Origem dos Dados Botânicos</span>
+            <span [ngStyle]="planta.isGeradoPorIa ? {'background-color': '#ede9fe', 'color': '#5b21b6', 'border': '1px solid #8b5cf6', 'font-weight': '700'} : {}"
+                  [class]="planta.isGeradoPorIa ? 'badge px-3 py-1 rounded-pill' : 'badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill'">
+              <i [class]="planta.isGeradoPorIa ? 'fa-solid fa-wand-magic-sparkles me-1' : 'fa-solid fa-globe me-1'" [style.color]="planta.isGeradoPorIa ? '#5b21b6' : ''"></i>
+              {{ planta.isGeradoPorIa ? 'Obtido via IA (Gemini Pro)' : 'Base Científica Oficial (GBIF / Flora do Brasil)' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parâmetros de Cultivo -->
+    <div class="col-md-7">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+        <h5 class="fw-bold text-success mb-3">
+          <i class="fa-solid fa-sliders me-2"></i> Parâmetros Ideais de Cultivo
+        </h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border border-light-subtle h-100">
+              <div class="d-flex align-items-center mb-2">
+                <i class="fa-solid fa-droplet fa-2x text-primary me-3"></i>
+                <div>
+                  <span class="text-muted small d-block">Umidade Solo Ideal</span>
+                  <h4 class="fw-bold text-dark mb-0">
+                    {{ (planta.umidadeSoloMin != null && planta.umidadeSoloMax != null) ? (planta.umidadeSoloMin + '% - ' + planta.umidadeSoloMax + '%') : 'Não informado' }}
+                  </h4>
+                </div>
+              </div>
+              <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-primary" [style.width.%]="planta.umidadeSoloMax || 0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border border-light-subtle h-100">
+              <div class="d-flex align-items-center mb-2">
+                <i class="fa-solid fa-temperature-half fa-2x text-warning me-3"></i>
+                <div>
+                  <span class="text-muted small d-block">Temp. Recomendada</span>
+                  <h4 class="fw-bold text-dark mb-0">
+                    {{ (planta.temperaturaMin != null && planta.temperaturaMax != null) ? (planta.temperaturaMin + '°C - ' + planta.temperaturaMax + '°C') : 'Não informado' }}
+                  </h4>
+                </div>
+              </div>
+              <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-warning" [style.width.%]="(planta.temperaturaMax || 0) * 2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light rounded-3 border border-light-subtle">
+          <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-circle-info text-info me-2"></i>Recomendações Gerais</h6>
+          <p class="text-secondary mb-0 small">{{ planta.instrucoesManejo }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO WIKI DO CULTIVO — PASSO A PASSO CRONOLÓGICO DA VIDA DA PLANTA -->
+    <div class="col-12 mt-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+          <h5 class="fw-bold text-success mb-0 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-book-bookmark text-success"></i> Wiki do Cultivo — Guia Prático Passo a Passo
+          </h5>
+          <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2 fw-medium">
+            <i class="fa-solid fa-route me-1"></i> Do Preparo à Colheita
+          </span>
+        </div>
+
+        <div class="row g-4">
+          <!-- Passo 1: Preparo da Semente -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(1)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">1</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-seedling text-success me-1"></i> 1. Preparo da Semente</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo1PreparoSemente }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 2: Preparo do Substrato e Sementeira -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(2)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">2</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-mountain-sun text-warning me-1"></i> 2. Substrato & Sementeira</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo2PreparoSolo }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 3: Semeadura & Germinação -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(3)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">3</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-droplet text-primary me-1"></i> 3. Semeadura & Germinação</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo3SemeaduraGerminacao }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 4: Cuidados do Broto & Desbaste -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(4)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">4</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-plant-wilt text-info me-1"></i> 4. Broto & Desbaste</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo4CuidadosBrotoDesbaste }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 5: Aclimatização & Preparo do Vaso Definitivo -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(5)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">5</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-cloud-sun text-warning me-1"></i> 5. Aclimatização & Vaso Definitivo</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo5AclimatizacaoVasoDefinitivo }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 6: Transplante das Mudas -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(6)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">6</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-hand-holding-hand text-success me-1"></i> 6. Transplante das Mudas</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo6TransplanteMudas }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 7: Nutrição, Rega & Podas de Topo -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(7)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">7</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-flask-vial text-info me-1"></i> 7. Nutrição & Podas</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo7NutricaoPoda }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passo 8: Floração, Maturação & Colheita -->
+          <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(8)">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">8</span>
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-apple-whole text-danger me-1"></i> 8. Floração & Colheita</h6>
+                </div>
+                <i class="fa-solid fa-arrow-right text-success small"></i>
+              </div>
+              <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
+                {{ formData.passo8FloracaoColheita }}
+              </p>
+              <div class="mt-auto pt-2 text-success fw-medium small">
+                Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bloco Cuidados do Dia a Dia em Modo Leitura -->
+        <div class="mt-4 p-4 bg-light rounded-4 border border-light-subtle" *ngIf="formData.cuidadosDiaADia">
+          <h6 class="fw-bold text-success mb-2 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-sun text-warning"></i> Cuidados do Dia a Dia & Prevenção de Pragas
+          </h6>
+          <p class="text-secondary small mb-0 lh-lg" style="white-space: pre-line;">
+            {{ formData.cuidadosDiaADia }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODO EDIÇÃO -->
+  <div *ngIf="isEditing" class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <h5 class="fw-bold text-dark mb-4"><i class="fa-solid fa-pen-to-square text-primary me-2"></i> Editar Informações & Wiki da Planta</h5>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-12 mb-2">
+        <label class="form-label fw-bold">Apelido / Identificador do Lote</label>
+        <input type="text" class="form-control form-control-lg rounded-3" [(ngModel)]="formData.apelidoLote" required />
+      </div>
+
+      <div class="col-12">
+        <div class="card bg-light border-0 p-3 rounded-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h6 class="fw-bold text-success mb-0"><i class="fa-solid fa-sliders me-1"></i> Parâmetros Ideais de Cultivo</h6>
+
+            <span *ngIf="formData.fonteDadosScraping"
+                  [ngStyle]="formData.isGeradoPorIa ? {'background-color': '#ede9fe', 'color': '#5b21b6', 'border': '1px solid #8b5cf6', 'font-weight': '700'} : {}"
+                  [class]="formData.isGeradoPorIa ? 'badge px-3 py-2 rounded-pill shadow-sm' : 'badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill shadow-sm'">
+              <i [class]="formData.isGeradoPorIa ? 'fa-solid fa-wand-magic-sparkles me-1' : 'fa-solid fa-globe me-1 text-success'" [style.color]="formData.isGeradoPorIa ? '#5b21b6' : ''"></i>
+              {{ formData.isGeradoPorIa ? '✨ Obtido via IA (Gemini Pro)' : '🌐 Origem: Base Científica Oficial (GBIF / Flora do Brasil)' }}
+            </span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary">Nome Popular da Espécie</label>
+              <input type="text" class="form-control" [(ngModel)]="formData.nomePopular" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary">Nome Científico</label>
+              <input type="text" class="form-control" [(ngModel)]="formData.nomeCientifico" />
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Umidade Solo Mín (%)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.umidadeSoloMin" min="0" max="100" />
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Umidade Solo Máx (%)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.umidadeSoloMax" min="0" max="100" />
+            </div>
+
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Temp. Mín (°C)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.temperaturaMin" />
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold text-secondary">Temp. Máx (°C)</label>
+              <input type="number" class="form-control" [(ngModel)]="formData.temperaturaMax" />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary">Instruções e Recomendações Gerais</label>
+              <textarea class="form-control" rows="2" [(ngModel)]="formData.instrucoesManejo"></textarea>
+            </div>
+
+            <!-- Upload Manual de Imagem -->
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary">
+                <i class="fa-solid fa-image me-1 text-primary"></i>Foto da Espécie
+                <span class="text-muted fw-normal ms-1">(opcional)</span>
+              </label>
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <!-- Preview -->
+                <div *ngIf="imagemExibicaoUrl" class="position-relative">
+                  <img [src]="imagemExibicaoUrl" alt="Preview" class="rounded-3 border shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" />
+                  <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle p-0"
+                    style="width: 20px; height: 20px; font-size: 9px; transform: translate(30%,-30%);" (click)="removerImagem()">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <!-- Placeholder -->
+                <div *ngIf="!imagemExibicaoUrl" class="d-flex align-items-center justify-content-center rounded-3 border bg-white"
+                     style="width: 80px; height: 80px; border-style: dashed !important; border-color: #dee2e6 !important;">
+                  <i class="fa-solid fa-image fa-xl text-secondary opacity-50"></i>
+                </div>
+                <!-- Botão upload -->
+                <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill" (click)="abrirSeletorImagem()" [disabled]="isUploadingImagem">
+                  <i class="fa-solid" [ngClass]="isUploadingImagem ? 'fa-spinner fa-spin' : 'fa-upload'" class="me-1"></i>
+                  {{ isUploadingImagem ? 'Enviando...' : (imagemExibicaoUrl ? 'Trocar Foto' : 'Carregar Foto') }}
+                </button>
+                <span class="text-muted" style="font-size: 11px;">JPG, PNG, WebP · Máx. 5 MB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDIÇÃO DOS 8 PASSOS DA WIKI -->
+      <div class="col-12 mt-4">
+        <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-book-bookmark me-1"></i> Editar Etapas da Wiki do Cultivo (8 Etapas)</h6>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">1. Preparo da Semente</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo1PreparoSemente"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">2. Preparo do Substrato & Sementeira</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo2PreparoSolo"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">3. Semeadura & Germinação</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo3SemeaduraGerminacao"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">4. Cuidados do Broto & Desbaste</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo4CuidadosBrotoDesbaste"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">5. Aclimatização & Preparo do Vaso Definitivo</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo5AclimatizacaoVasoDefinitivo"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">6. Transplante das Mudas</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo6TransplanteMudas"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">7. Nutrição, Rega & Podas de Topo</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo7NutricaoPoda"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold text-secondary">8. Floração, Maturação & Colheita</label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.passo8FloracaoColheita"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-bold text-success">
+              <i class="fa-solid fa-sun text-warning me-1"></i> Cuidados do Dia a Dia (Rotina Diária & Prevenção de Pragas)
+            </label>
+            <textarea class="form-control" rows="3" [(ngModel)]="formData.cuidadosDiaADia"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div *ngIf="showConfirmDelete" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-3" style="background-color: rgba(0,0,0,0.5);">
+  <div class="card border-0 shadow-lg rounded-4 p-4 text-center bg-white" style="max-width: 440px; width: 90%;">
+    <div class="mb-3">
+      <i class="fa-solid fa-triangle-exclamation fa-3x text-danger"></i>
+    </div>
+    <h5 class="fw-bold text-dark">Confirmar Exclusão</h5>
+    <p class="text-muted small mb-4">Tem certeza que deseja excluir esta planta? Esta ação não poderá ser desfeita.</p>
+    <div class="d-flex justify-content-center gap-2">
+      <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="cancelarExclusao()">Cancelar</button>
+      <button type="button" class="btn btn-danger px-4 rounded-pill shadow-sm" (click)="executarExclusao()">Excluir</button>
+    </div>
+  </div>
+</div>

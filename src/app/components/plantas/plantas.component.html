@@ -1,0 +1,84 @@
+<!-- Top Hero Header -->
+<header class="bg-agrotech-primary text-white py-4 shadow-sm mb-4">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1 class="h3 mb-0 fw-bold"><i class="fa-solid fa-seedling me-2"></i> AgroTech — Gestão de Mudas e Cultivos</h1>
+      <p class="mb-0 text-white-50 small">Monitoramento inteligente e cadastro assistido por IA botânica</p>
+    </div>
+    <button class="btn btn-light text-success fw-bold px-4 rounded-pill shadow-sm" (click)="cadastrar()">
+      <i class="fa-solid fa-plus me-1"></i> Cadastrar
+    </button>
+  </div>
+</header>
+
+<div class="container pb-5">
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && plantas.length === 0" class="text-center py-5 card card-agrotech bg-white p-5 border-0 shadow-sm rounded-4">
+    <div class="mb-3">
+      <i class="fa-solid fa-plant-wilt fa-4x text-muted opacity-50"></i>
+    </div>
+    <h3 class="fw-bold text-dark">Nenhuma muda ou planta cadastrada</h3>
+    <p class="text-muted">Comece cadastrando suas pequenas plantações para acompanhar os parâmetros ideais de umidade e temperatura.</p>
+    <div>
+      <button class="btn btn-success px-4 rounded-pill shadow-sm" (click)="cadastrar()">
+        <i class="fa-solid fa-plus me-1"></i> Cadastrar
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-success" role="status"></div>
+    <p class="text-muted mt-2">Carregando seus cultivos...</p>
+  </div>
+
+  <!-- Cards de Plantas (Clicáveis, Sem botões de edição/exclusão nos cards) -->
+  <div class="row g-4" *ngIf="!isLoading && plantas.length > 0">
+    <div class="col-md-6 col-lg-4" *ngFor="let planta of plantas">
+      <div class="card card-agrotech h-100 bg-white border-0 shadow-sm rounded-4 cursor-pointer planta-card overflow-hidden" (click)="verDetalhes(planta.id)">
+        <div *ngIf="planta.imagemUrl" class="position-relative">
+          <img [src]="planta.imagemUrl" alt="Foto de {{ planta.especieNomePopular }}" class="w-100" style="height: 130px; object-fit: cover;" />
+          <span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-2 rounded-pill px-3 py-1 small">
+            <i class="fa-solid fa-camera me-1"></i> {{ planta.especieNomePopular }}
+          </span>
+        </div>
+        <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-medium" *ngIf="!planta.imagemUrl">
+            <i class="fa-solid fa-leaf me-1"></i> {{ planta.especieNomePopular }}
+          </span>
+          <span class="badge bg-light text-secondary rounded-pill px-2 py-1 small ms-auto">
+            Ver detalhes <i class="fa-solid fa-chevron-right ms-1"></i>
+          </span>
+        </div>
+
+        <div class="card-body">
+          <h5 class="fw-bold text-dark mb-1">{{ planta.apelidoLote }}</h5>
+          <p class="text-muted small fst-italic mb-3" *ngIf="planta.especieNomeCientifico">
+            {{ planta.especieNomeCientifico }}
+          </p>
+
+          <div class="p-3 bg-light rounded-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small text-muted"><i class="fa-solid fa-droplet text-primary me-1"></i> Umidade Solo Ideal:</span>
+              <span class="fw-bold text-dark">{{ (planta.umidadeSoloMin != null && planta.umidadeSoloMax != null) ? (planta.umidadeSoloMin + '% - ' + planta.umidadeSoloMax + '%') : 'Não informado' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small text-muted"><i class="fa-solid fa-temperature-half text-warning me-1"></i> Temp. Recomendada:</span>
+              <span class="fw-bold text-dark">{{ (planta.temperaturaMin != null && planta.temperaturaMax != null) ? (planta.temperaturaMin + '°C - ' + planta.temperaturaMax + '°C') : 'Não informado' }}</span>
+            </div>
+          </div>
+
+          <!-- Instruções de Manejo -->
+          <p class="small text-secondary mb-0 line-clamp-2" *ngIf="planta.instrucoesManejo">
+            <i class="fa-solid fa-circle-info text-info me-1"></i> {{ planta.instrucoesManejo }}
+          </p>
+        </div>
+
+        <div class="card-footer bg-light border-0 py-2 px-3 d-flex justify-content-between text-muted small rounded-bottom-4">
+          <span><i class="fa-regular fa-calendar-check me-1"></i> Cadastrado em {{ (planta.criadoEm | date:'dd/MM/yyyy') || 'Recente' }}</span>
+          <span class="text-success fw-medium"><i class="fa-solid fa-circle-check me-1"></i> Ativo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
