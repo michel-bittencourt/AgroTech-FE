@@ -17,7 +17,11 @@ export class AgroTechService {
   }
 
   private get defaultHeaders(): HttpHeaders {
-    return new HttpHeaders();
+    return new HttpHeaders({
+      'Bypass-Tunnel-Remainder': 'true',
+      'localtunnel-skip-warning': 'true',
+      'ngrok-skip-browser-warning': 'true'
+    });
   }
 
   constructor(private http: HttpClient) {}
