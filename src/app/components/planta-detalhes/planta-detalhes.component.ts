@@ -116,6 +116,20 @@ export class PlantaDetalhesComponent implements OnInit {
     });
   }
 
+  getTextoPadraoEtapa(passo: number): string {
+    const padroes: Record<number, string> = {
+      1: 'Seleção de sementes sadias e viáveis, higienização sanitária e hidratação/escarificação prévia para quebra de dormência e rápida germinação.',
+      2: 'Escolha dos recipientes iniciais (sementeiras de células ou copinhos descartáveis de 200ml furados) e preparo de substrato leve, fofo, aerado e bem drenado.',
+      3: '1. Faça pequenos furos no substrato com profundidade equivalente a 2 a 3 vezes o tamanho da semente (aprox. 0,5 cm a 1 cm).\n2. Deposite de 2 a 3 sementes por célula ou copinho no centro para garantir a germinação.\n3. Cubra suavemente as sementes com uma fina camada de substrato leve peneirado.\n4. Umedeça o substrato borrifando água delicadamente para não deslocar a semente do lugar.\n5. Mantenha em local iluminado porém protegido de sol forte direto.',
+      4: '1. Mantenha a sementeira levemente úmida borrifando água delicadamente, sem encharcar.\n2. Forneça de 2 a 3 horas de sol fraco da manhã para fortalecer o caule e evitar estiolamento.\n3. Faça o desbaste (thinning): corte a muda mais fraca com tesoura fina se nascerem duas no mesmo copinho.',
+      5: '1. Exponha a sementeira ao sol pleno gradualmente por 2 a 3 dias antes do transplante para aclimatar a muda.\n2. Escolha o vaso definitivo (mínimo 5 a 10 litros) com furos de drenagem no fundo.\n3. Coloque camada de drenagem no fundo (2 a 3 cm de argila expandida/isopor) e cubra com manta geotêxtil (Bidim).\n4. Preencha o vaso definitivo com solo fértil rico em matéria orgânica.',
+      6: '1. Aguarde a muda apresentar de 4 a 6 folhas verdadeiras (8 a 10 cm de altura).\n2. Pressione delicadamente as laterais do copinho para retirar o torrão intacto sem puxar pelo caule.\n3. Desfaça suavemente as raízes enoveladas no fundo com os dedos para estimular a expansão no novo solo.\n4. Plante no berço do vaso definitivo, cubra até a base do caule e regue no final da tarde.',
+      7: '1. Realize regas regulares diretamente na base da planta no início da manhã, evitando molhar as folhas.\n2. Faça a poda de beliscamento (apical/topping) nos brotos superiores para multiplicar os ramos laterais.\n3. Adube a cada 15 a 20 dias com adubo orgânico (húmus de minhoca ou esterco curtido).',
+      8: '1. Para ervas e temperos aromáticos, remova os botões florais assim que surgirem para concentrar os óleos essenciais nas folhas.\n2. Acompanhe a mudança de cor e maturação ideal dos frutos no pé.\n3. Efetue a colheita nas primeiras horas da manhã utilizando tesoura limpa e higienizada com álcool 70%.'
+    };
+    return padroes[passo] || '';
+  }
+
   populateFormData(p: Planta): void {
     this.formData = {
       apelidoLote: p.apelidoLote,
@@ -128,14 +142,14 @@ export class PlantaDetalhesComponent implements OnInit {
       temperaturaMin: p.temperaturaMin ?? null,
       temperaturaMax: p.temperaturaMax ?? null,
       instrucoesManejo: p.instrucoesManejo || '',
-      passo1PreparoSemente: p.passo1PreparoSemente || '',
-      passo2PreparoSolo: p.passo2PreparoSolo || '',
-      passo3SemeaduraGerminacao: p.passo3SemeaduraGerminacao || '',
-      passo4CuidadosBrotoDesbaste: p.passo4CuidadosBrotoDesbaste || p.passo4TransplanteMudas || '',
-      passo5AclimatizacaoVasoDefinitivo: p.passo5AclimatizacaoVasoDefinitivo || p.passo5CrescimentoManejo || '',
-      passo6TransplanteMudas: p.passo6TransplanteMudas || '',
-      passo7NutricaoPoda: p.passo7NutricaoPoda || '',
-      passo8FloracaoColheita: p.passo8FloracaoColheita || '',
+      passo1PreparoSemente: p.passo1PreparoSemente || this.getTextoPadraoEtapa(1),
+      passo2PreparoSolo: p.passo2PreparoSolo || this.getTextoPadraoEtapa(2),
+      passo3SemeaduraGerminacao: p.passo3SemeaduraGerminacao || this.getTextoPadraoEtapa(3),
+      passo4CuidadosBrotoDesbaste: p.passo4CuidadosBrotoDesbaste || p.passo4TransplanteMudas || this.getTextoPadraoEtapa(4),
+      passo5AclimatizacaoVasoDefinitivo: p.passo5AclimatizacaoVasoDefinitivo || p.passo5CrescimentoManejo || this.getTextoPadraoEtapa(5),
+      passo6TransplanteMudas: p.passo6TransplanteMudas || this.getTextoPadraoEtapa(6),
+      passo7NutricaoPoda: p.passo7NutricaoPoda || this.getTextoPadraoEtapa(7),
+      passo8FloracaoColheita: p.passo8FloracaoColheita || p.passo6FloracaoColheita || this.getTextoPadraoEtapa(8),
       cuidadosDiaADia: p.cuidadosDiaADia || '',
       fonteDadosScraping: p.fonteDadosScraping || '',
       isGeradoPorIa: !!p.isGeradoPorIa
@@ -320,5 +334,20 @@ export class PlantaDetalhesComponent implements OnInit {
     if (this.plantaId) {
       this.router.navigate(['/plantas', this.plantaId, 'etapa', passo]);
     }
+  }
+
+  readonly resumosEtapas: Record<number, string> = {
+    1: 'Seleção de sementes sadias e viáveis, higienização sanitária e hidratação/escarificação prévia para quebra de dormência e rápida germinação.',
+    2: 'Escolha dos recipientes iniciais (sementeiras de células ou copinhos descartáveis de 200ml furados) e preparo de substrato leve, fofo, aerado e bem drenado.',
+    3: 'Semeadura dos grãos nos recipientes na profundidade correta (2 a 3x o tamanho da semente), umedecimento delicado com borrifador e iluminação indireta para despertar a semente.',
+    4: 'Manutenção diária da umidade na sementeira, iluminação solar da manhã (2-3h), desbaste (thinning) das mudas sobressalentes e acompanhamento do desenvolvimento inicial.',
+    5: 'Exposição gradual da muda ao sol pleno (aclimatação) e montagem do vaso definitivo (mínimo 5-10L) com camada de drenagem (argila expandida/isopor + manta) e solo fértil.',
+    6: 'Retirada da muda com o torrão intacto ao atingir 4 a 6 folhas verdadeiras e descompactação suave das raízes enoveladas no fundo para enraizamento profundo no novo solo.',
+    7: 'Manejo contínuo com regas na base do solo no início da manhã, adubação orgânica periódica a cada 15-30 dias e poda de beliscamento apical (topping) para multiplicar ramos.',
+    8: 'Acompanhamento da fase reprodutiva, manejo de flores (remocão em plantas aromáticas para prolongar sabor) e colheita no ponto ideal de maturação com tesoura higienizada em álcool 70%.'
+  };
+
+  getResumoEtapa(passo: number): string {
+    return this.resumosEtapas[passo] || '';
   }
 }

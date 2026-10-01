@@ -20,14 +20,14 @@
 <div class="container pb-5" *ngIf="!isLoading && planta">
   <!-- Bloco de Ações Rápidas -->
   <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center mobile-stack-header">
       <div>
         <h6 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-bolt text-warning me-2"></i>Ações Rápidas</h6>
         <span class="text-muted small">
           {{ isEditing ? 'Modo de Edição — Personalize as instruções desta etapa' : 'Detalhamento agronômico da etapa ' + etapaAtual.numero + ' do cultivo' }}
         </span>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 mobile-stack-actions">
         <ng-container *ngIf="!isEditing">
           <button type="button" class="btn btn-primary px-4 rounded-pill fw-medium shadow-sm d-flex align-items-center gap-2" (click)="toggleChatIa()">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Pergunte à IA
@@ -64,7 +64,7 @@
       Tire suas dúvidas para a etapa de <strong>{{ etapaAtual.titulo }}</strong> da espécie <strong>{{ planta.especieNomePopular }}</strong>. O assistente IA considera todos os parâmetros cadastrados para orientar seu cultivo.
     </p>
 
-    <div class="input-group mb-3">
+    <div class="input-group mb-3 mobile-stack-input-group">
       <input
         type="text"
         class="form-control form-control-lg rounded-start-4 border-success-subtle shadow-sm"
@@ -122,9 +122,9 @@
           [ngClass]="passoNumero === stepNum ? 'btn-success fw-bold shadow-sm' : 'btn-light text-secondary border border-light-subtle'"
           (click)="mudarEtapa(stepNum)"
         >
-          <span class="badge rounded-circle p-1 d-inline-flex align-items-center justify-content-center"
+          <span class="badge badge-circle-sm"
                 [ngClass]="passoNumero === stepNum ? 'bg-white text-success' : 'bg-secondary-subtle text-dark'"
-                style="width: 24px; height: 24px; font-size: 11px;">
+                style="font-size: 11px;">
             {{ stepNum }}
           </span>
           <span class="small text-truncate" style="font-size: 12px;">{{ getEtapaConfig(stepNum).titulo }}</span>
@@ -169,6 +169,48 @@
         </div>
       </div>
 
+      <!-- BLOCO RESPONSIVO MÓVEL: Materiais & Parâmetros (Exibidos abaixo do Resumo em telas md e menores) -->
+      <div class="d-block d-lg-none mb-4">
+        <!-- Materiais Recomendados (Mobile) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4" *ngIf="etapaAtual.materiaisRecomendados && etapaAtual.materiaisRecomendados.length > 0">
+          <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-screwdriver-wrench text-primary"></i> Materiais Recomendados
+          </h6>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-light text-dark border border-secondary-subtle px-3 py-2 rounded-pill small font-weight-normal" *ngFor="let item of etapaAtual.materiaisRecomendados">
+              <i class="fa-solid fa-check text-success me-1"></i> {{ item }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Parâmetros da Planta (Mobile) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+          <h6 class="fw-bold text-success mb-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-sliders"></i> Parâmetros Ideais do Cultivo
+          </h6>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="p-3 bg-light rounded-3 h-100">
+                <div class="d-flex align-items-center mb-1">
+                  <i class="fa-solid fa-droplet text-primary me-2"></i>
+                  <span class="small text-muted">Umidade Solo</span>
+                </div>
+                <strong class="h6 fw-bold text-dark mb-0 d-block mt-1">{{ (planta.umidadeSoloMin != null && planta.umidadeSoloMax != null) ? (planta.umidadeSoloMin + '% - ' + planta.umidadeSoloMax + '%') : 'Não informado' }}</strong>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-3 bg-light rounded-3 h-100">
+                <div class="d-flex align-items-center mb-1">
+                  <i class="fa-solid fa-temperature-half text-warning me-2"></i>
+                  <span class="small text-muted">Temp. Recomendada</span>
+                </div>
+                <strong class="h6 fw-bold text-dark mb-0 d-block mt-1">{{ (planta.temperaturaMin != null && planta.temperaturaMax != null) ? (planta.temperaturaMin + '°C - ' + planta.temperaturaMax + '°C') : 'Não informado' }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- BLOCO: Passo a Passo (Ordem de Execução Numerada) -->
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 border-start border-4 border-warning">
         <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
@@ -183,7 +225,7 @@
 
         <div class="vstack gap-3" *ngIf="passoAPassoItens.length > 0">
           <div class="d-flex align-items-start gap-3 p-3 bg-light rounded-3 border border-light-subtle shadow-sm" *ngFor="let item of passoAPassoItens">
-            <span class="badge bg-warning text-dark rounded-circle p-2 d-inline-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 32px; height: 32px; flex-shrink: 0;">
+            <span class="badge bg-warning text-dark badge-circle fw-bold shadow-sm">
               {{ item.numero }}
             </span>
             <span class="text-dark fs-6 lh-base pt-1 fw-medium">{{ item.texto }}</span>
@@ -224,7 +266,7 @@
       <!-- BLOCO: DIÁRIO DE BORDO & REVISÃO DE SAÚDE DA IA (DIRETAMENTE ABAIXO DE ERROS COMUNS) -->
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
         <!-- Header do Diário de Bordo -->
-        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2 mobile-stack-header">
           <div>
             <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
               <i class="fa-solid fa-book-bookmark text-success fs-4"></i>
@@ -236,7 +278,7 @@
           </div>
           <button
             type="button"
-            class="btn btn-success px-4 py-2 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2"
+            class="btn btn-success px-4 py-2 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2 mobile-full-btn"
             (click)="analisarSaudeDiario()"
             [disabled]="isAnalisandoSaude || notasDiario.length === 0"
           >
@@ -326,7 +368,7 @@
 
         <!-- INPUT PARA NOVA NOTA NO DIÁRIO COM DATA/HORA EDITÁVEL -->
         <div class="card border border-light-subtle rounded-4 p-3 mb-4 bg-light shadow-sm">
-          <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+          <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2 mobile-stack-header">
             <label class="form-label fw-bold text-dark mb-0 d-flex align-items-center gap-2">
               <i class="fa-solid fa-pen text-primary"></i> Registrar Nova Observação no Diário
             </label>
@@ -341,7 +383,7 @@
               />
             </div>
           </div>
-          <div class="input-group">
+          <div class="input-group mobile-stack-input-group">
             <textarea
               class="form-control rounded-start-3 border-secondary-subtle"
               rows="2"
@@ -410,8 +452,8 @@
           <span class="small fw-bold text-dark"><i class="fa-solid fa-leaf text-success me-1"></i> {{ planta.especieNomePopular }}</span>
         </div>
       </div>
-      <!-- Materiais Recomendados -->
-      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+      <!-- Materiais Recomendados (Desktop) -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 d-none d-lg-block" *ngIf="etapaAtual.materiaisRecomendados && etapaAtual.materiaisRecomendados.length > 0">
         <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
           <i class="fa-solid fa-screwdriver-wrench text-primary"></i> Materiais Recomendados
         </h6>
@@ -422,8 +464,8 @@
         </div>
       </div>
 
-      <!-- Parâmetros da Planta -->
-      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+      <!-- Parâmetros da Planta (Desktop) -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 d-none d-lg-block">
         <h6 class="fw-bold text-success mb-3 d-flex align-items-center gap-2">
           <i class="fa-solid fa-sliders"></i> Parâmetros Ideais do Cultivo
         </h6>
@@ -444,6 +486,7 @@
             <strong class="h5 fw-bold text-dark mb-0 ms-4">{{ planta.temperaturaMin }}°C - {{ planta.temperaturaMax }}°C</strong>
           </div>
         </div>
+      </div>
     </div>
   </div>
 </div>

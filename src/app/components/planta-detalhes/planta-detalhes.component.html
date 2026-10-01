@@ -23,14 +23,14 @@
 <div class="container pb-5" *ngIf="!isLoading && planta">
   <!-- Bloco de Ações Rápidas -->
   <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center mobile-stack-header">
       <div>
         <h6 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-bolt text-warning me-2"></i>Ações Rápidas</h6>
         <span class="text-muted small">
           {{ isEditing ? 'Modo de Edição — Altere as etapas da Wiki e os parâmetros de cultivo' : 'Modo de Leitura — Wiki completa de cultivo e parâmetros agronômicos' }}
         </span>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 mobile-stack-actions">
         <ng-container *ngIf="!isEditing">
           <button type="button" class="btn btn-outline-primary px-4 rounded-pill fw-medium" (click)="iniciarEdicao()">
             <i class="fa-solid fa-pen-to-square me-1"></i> Editar
@@ -56,7 +56,7 @@
   <!-- MODO LEITURA (READ-ONLY) -->
   <div *ngIf="!isEditing" class="row g-4">
     <!-- Visão Geral do Lote -->
-    <div class="col-md-5">
+    <div class="col-12 col-md-5">
       <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-white">
         <div *ngIf="planta.imagemUrl" class="mb-3 rounded-3 overflow-hidden shadow-sm">
           <img [src]="planta.imagemUrl" alt="Foto de {{ planta.especieNomePopular }}" class="w-100" style="height: 160px; object-fit: cover;" />
@@ -101,7 +101,7 @@
     </div>
 
     <!-- Parâmetros de Cultivo -->
-    <div class="col-md-7">
+    <div class="col-12 col-md-7">
       <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
         <h5 class="fw-bold text-success mb-3">
           <i class="fa-solid fa-sliders me-2"></i> Parâmetros Ideais de Cultivo
@@ -168,13 +168,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(1)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">1</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">1</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-seedling text-success me-1"></i> 1. Preparo da Semente</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo1PreparoSemente }}
+                {{ getResumoEtapa(1) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -187,13 +187,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(2)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">2</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">2</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-mountain-sun text-warning me-1"></i> 2. Substrato & Sementeira</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo2PreparoSolo }}
+                {{ getResumoEtapa(2) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -206,13 +206,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(3)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">3</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">3</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-droplet text-primary me-1"></i> 3. Semeadura & Germinação</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo3SemeaduraGerminacao }}
+                {{ getResumoEtapa(3) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -225,13 +225,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(4)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">4</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">4</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-plant-wilt text-info me-1"></i> 4. Broto & Desbaste</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo4CuidadosBrotoDesbaste }}
+                {{ getResumoEtapa(4) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -244,13 +244,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(5)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">5</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">5</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-cloud-sun text-warning me-1"></i> 5. Aclimatização & Vaso Definitivo</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo5AclimatizacaoVasoDefinitivo }}
+                {{ getResumoEtapa(5) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -263,13 +263,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(6)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">6</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">6</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-hand-holding-hand text-success me-1"></i> 6. Transplante das Mudas</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo6TransplanteMudas }}
+                {{ getResumoEtapa(6) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -282,13 +282,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(7)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">7</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">7</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-flask-vial text-info me-1"></i> 7. Nutrição & Podas</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo7NutricaoPoda }}
+                {{ getResumoEtapa(7) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -301,13 +301,13 @@
             <div class="card h-100 border-0 bg-light p-3 rounded-4 shadow-sm cursor-pointer wiki-card-interactive" (click)="abrirEtapa(8)">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-success text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">8</span>
+                  <span class="badge bg-success text-white badge-circle fw-bold">8</span>
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-apple-whole text-danger me-1"></i> 8. Floração & Colheita</h6>
                 </div>
                 <i class="fa-solid fa-arrow-right text-success small"></i>
               </div>
               <p class="text-secondary small mb-2 line-clamp-3" style="white-space: pre-line;">
-                {{ formData.passo8FloracaoColheita }}
+                {{ getResumoEtapa(8) }}
               </p>
               <div class="mt-auto pt-2 text-success fw-medium small">
                 Ver guia completo <i class="fa-solid fa-chevron-right ms-1"></i>
@@ -474,7 +474,7 @@
     </div>
     <h5 class="fw-bold text-dark">Confirmar Exclusão</h5>
     <p class="text-muted small mb-4">Tem certeza que deseja excluir esta planta? Esta ação não poderá ser desfeita.</p>
-    <div class="d-flex justify-content-center gap-2">
+    <div class="d-flex justify-content-center gap-2 mobile-stack-actions">
       <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="cancelarExclusao()">Cancelar</button>
       <button type="button" class="btn btn-danger px-4 rounded-pill shadow-sm" (click)="executarExclusao()">Excluir</button>
     </div>

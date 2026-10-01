@@ -27,6 +27,7 @@ export interface EspecieScraped {
   passo6FloracaoColheita?: string;
   cuidadosDiaADia?: string;
   isGeradoPorIa?: boolean;
+  camposOrigemIa?: { [key: string]: boolean };
 }
 
 export interface Especie {

@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Subject, of, timeout, retry, debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs';
+import { Subject, of, timeout, retry, debounceTime, distinctUntilChanged, switchMap, catchError, throwError } from 'rxjs';
 import { AgroTechService } from '../../services/agrotech.service';
 import { Especie, EspecieScraped, EspecieSugestao } from '../../models/agrotech.models';
 import { environment } from '../../../environments/environment';
@@ -26,8 +26,10 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
   isUploadingImagem = false;
   isSaving = false;
 
-  // Feedback de Demora e Re-tentativa
+  // Feedback de Demora, Erro e Re-tentativa IA
   erroScrapingMensagem: string | null = null;
+  erroConexaoIa = false;
+  erroConexaoIaMensagem: string | null = null;
   ultimaSugestaoSelecionada: EspecieSugestao | null = null;
   mensagemDemoraSugestoes: string | null = null;
 
@@ -137,6 +139,8 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     this.todasSugestoes = [];
     this.erroScrapingMensagem = null;
     this.mensagemDemoraSugestoes = null;
+    this.erroConexaoIa = false;
+    this.erroConexaoIaMensagem = null;
   }
 
   buscarSugestoesIa(): void {
@@ -149,6 +153,8 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     this.todasSugestoes = [];
     this.erroScrapingMensagem = null;
     this.mensagemDemoraSugestoes = null;
+    this.erroConexaoIa = false;
+    this.erroConexaoIaMensagem = null;
     this.cdr.detectChanges();
 
     const timerDemora = setTimeout(() => {
@@ -160,26 +166,58 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
 
     this.agroTechService.getSugestoes(termo).pipe(
       retry({ count: 1, delay: 1000 }),
-      catchError(() => of([]))
-    ).subscribe((data) => {
-      clearTimeout(timerDemora);
-      this.isBuscandoSugestoes = false;
-      this.mensagemDemoraSugestoes = null;
-      this.todasSugestoes = data || [];
+      catchError((err) => {
+        console.error('[PlantaCadastroComponent] Erro ao conectar/obter resposta da IA:', err);
+        return throwError(() => err);
+      })
+    ).subscribe({
+      next: (data) => {
+        clearTimeout(timerDemora);
+        this.isBuscandoSugestoes = false;
+        this.mensagemDemoraSugestoes = null;
 
-      const possuiExato = this.todasSugestoes.some(
-        (s) => s.nomePopular.toLowerCase() === termo.toLowerCase()
-      );
-      if (!possuiExato) {
-        this.todasSugestoes.unshift({
-          nomePopular: termo,
-          nomeCientifico: 'Espécie digitada'
-        });
+        if (!data || data.length === 0) {
+          this.todasSugestoes = [];
+          this.showSelectSugestoes = false;
+          this.erroConexaoIa = true;
+          this.erroConexaoIaMensagem = 'Não foi possível se conectar e obter resposta da IA para esta busca.';
+        } else {
+          this.todasSugestoes = data;
+          this.erroConexaoIa = false;
+          this.erroConexaoIaMensagem = null;
+          this.showSelectSugestoes = true;
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        clearTimeout(timerDemora);
+        this.isBuscandoSugestoes = false;
+        this.mensagemDemoraSugestoes = null;
+        this.todasSugestoes = [];
+        this.showSelectSugestoes = false;
+        this.erroConexaoIa = true;
+        this.erroConexaoIaMensagem = 'Não foi possível se conectar e obter resposta da IA.';
+        this.cdr.detectChanges();
       }
-
-      this.showSelectSugestoes = true;
-      this.cdr.detectChanges();
     });
+  }
+
+  tentarNovamenteBuscaIa(): void {
+    this.buscarSugestoesIa();
+  }
+
+  cadastrarManualmente(): void {
+    this.erroConexaoIa = false;
+    this.erroConexaoIaMensagem = null;
+    this.erroScrapingMensagem = null;
+    this.showSelectSugestoes = false;
+    if (this.termoBuscaEspecie && this.termoBuscaEspecie.trim()) {
+      this.formData.nomePopular = this.termoBuscaEspecie.trim();
+      if (!this.formData.apelidoLote || this.formData.apelidoLote.startsWith('Mudas de ')) {
+        this.formData.apelidoLote = `Mudas de ${this.formData.nomePopular} - Lote 01`;
+      }
+    }
+    this.cdr.detectChanges();
   }
 
   onSelectSugestaoChange(): void {
@@ -217,32 +255,31 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     this.agroTechService.scrapeEspecie(sugestao.nomePopular, sugestao.nomeCientifico)
       .pipe(
         retry({ count: 1, delay: 1500 }),
-        timeout(60000)
+        timeout(120000)
       )
       .subscribe({
         next: (scrapedData: EspecieScraped) => {
-          console.log('%c🌐 [AgroTech - Coleta Oficial] Dados botânicos obtidos dos portais oficiais (JBRJ / Flora do Brasil / GBIF / Embrapa):', 'color: #10b981; font-weight: bold; font-size: 13px;', {
-            planta: sugestao.nomePopular,
-            nomeCientifico: sugestao.nomeCientifico,
-            fonteOficial: scrapedData.fonteDadosScraping
-          });
+          const camposMap = scrapedData.camposOrigemIa || {};
 
-          console.log('%c✨ [AgroTech - Refinamento IA] Parâmetros Ideais de Cultivo e Guia Botânico refinados via IA (Gemini Pro):', 'color: #8b5cf6; font-weight: bold; font-size: 13px;', {
-            nomePopular: scrapedData.nomePopular,
-            nomeCientifico: scrapedData.nomeCientifico,
-            umidadeSoloMin: scrapedData.umidadeSoloMin,
-            umidadeSoloMax: scrapedData.umidadeSoloMax,
-            temperaturaMin: scrapedData.temperaturaMin,
-            temperaturaMax: scrapedData.temperaturaMax,
-            instrucoesManejo: scrapedData.instrucoesManejo,
-            passo1PreparoSemente: scrapedData.passo1PreparoSemente,
-            passo2PreparoSolo: scrapedData.passo2PreparoSolo,
-            passo3SemeaduraGerminacao: scrapedData.passo3SemeaduraGerminacao,
-            passo4TransplanteMudas: scrapedData.passo4TransplanteMudas,
-            passo5CrescimentoManejo: scrapedData.passo5CrescimentoManejo,
-            passo6FloracaoColheita: scrapedData.passo6FloracaoColheita,
-            isGeradoPorIa: scrapedData.isGeradoPorIa
-          });
+          console.group('%c🌐 [AgroTech - Relatório de Fontes Oficiais & Origem dos Campos]', 'color: #059669; font-weight: bold; font-size: 14px;');
+          console.log('%c🏛️ Fontes Científicas Consultadas:', 'color: #0284c7; font-weight: bold;', scrapedData.fonteDadosScraping);
+          console.log('%c🌱 Planta / Espécie:', 'color: #16a34a; font-weight: bold;', `${scrapedData.nomePopular} (${scrapedData.nomeCientifico || 'Taxonomia Oficial'})`);
+
+          const auditData = [
+            { Campo: 'Umidade do Solo (Min/Max)', Origem: camposMap['umidadeSolo'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Temperatura Ideal (Min/Max)', Origem: camposMap['temperatura'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Instruções e Recomendações de Manejo', Origem: camposMap['instrucoesManejo'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Passo 1: Preparo da Semente', Origem: camposMap['passo1PreparoSemente'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Passo 2: Preparo do Substrato', Origem: camposMap['passo2PreparoSolo'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Passo 3: Semeadura & Germinação', Origem: camposMap['passo3SemeaduraGerminacao'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Passo 4: Transplante & Mudas', Origem: (camposMap['passo6TransplanteMudas'] ?? camposMap['passo4CuidadosBrotoDesbaste']) ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Passo 5: Podas, Nutrição & Manejo', Origem: (camposMap['passo7NutricaoPoda'] ?? camposMap['passo5AclimatizacaoVasoDefinitivo']) ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Passo 6: Floração & Colheita', Origem: camposMap['passo8FloracaoColheita'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+            { Campo: 'Cuidados do Dia a Dia', Origem: camposMap['cuidadosDiaADia'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
+          ];
+
+          console.table(auditData);
+          console.groupEnd();
 
           this.finalizarProgressoSucesso(scrapedData);
         },
@@ -354,6 +391,61 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     }, 800);
   }
 
+  camposOrigemIa: { [key: string]: boolean } = {};
+
+  private getCampoOrigemIaStatus(campoKey: string): boolean | undefined {
+    if (!this.camposOrigemIa || Object.keys(this.camposOrigemIa).length === 0) {
+      return undefined;
+    }
+
+    if (typeof this.camposOrigemIa[campoKey] === 'boolean') {
+      return this.camposOrigemIa[campoKey];
+    }
+
+    const aliasMap: { [key: string]: string[] } = {
+      'passo4TransplanteMudas': ['passo6TransplanteMudas', 'passo4CuidadosBrotoDesbaste'],
+      'passo5CrescimentoManejo': ['passo7NutricaoPoda', 'passo5AclimatizacaoVasoDefinitivo'],
+      'passo6FloracaoColheita': ['passo8FloracaoColheita'],
+      'umidadeSolo': ['umidadeSoloMin', 'umidadeSoloMax'],
+      'temperatura': ['temperaturaMin', 'temperaturaMax']
+    };
+
+    const aliases = aliasMap[campoKey];
+    if (aliases) {
+      for (const alias of aliases) {
+        if (typeof this.camposOrigemIa[alias] === 'boolean') {
+          return this.camposOrigemIa[alias];
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  isCampo100PercentIa(campoKey: string): boolean {
+    // Exibe o selo '100% IA' SOMENTE se houver registro explícito no mapa de origem indicando 'true'.
+    // Proibido qualquer tipo de presunção ou fallback genérico.
+    const status = this.getCampoOrigemIaStatus(campoKey);
+    return status === true;
+  }
+
+  isCampoBaseOficial(campoKey: string): boolean {
+    if (!this.formData.nomePopular || !this.formData.fonteDadosScraping) {
+      return false;
+    }
+    const status = this.getCampoOrigemIaStatus(campoKey);
+    if (status === false) {
+      return true;
+    }
+    if (status === undefined) {
+      const fontes = this.formData.fonteDadosScraping || '';
+      if (fontes.includes('Jardim Botânico') || fontes.includes('GBIF') || fontes.includes('Embrapa') || fontes.includes('Flora')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private finalizarProgressoSucesso(scrapedData: EspecieScraped): void {
     this.limparTimerProgresso();
     this.progressoPercentual = 100;
@@ -370,12 +462,13 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     this.formData.passo1PreparoSemente = scrapedData.passo1PreparoSemente || '';
     this.formData.passo2PreparoSolo = scrapedData.passo2PreparoSolo || '';
     this.formData.passo3SemeaduraGerminacao = scrapedData.passo3SemeaduraGerminacao || '';
-    this.formData.passo4TransplanteMudas = scrapedData.passo4TransplanteMudas || '';
-    this.formData.passo5CrescimentoManejo = scrapedData.passo5CrescimentoManejo || '';
-    this.formData.passo6FloracaoColheita = scrapedData.passo6FloracaoColheita || '';
+    this.formData.passo4TransplanteMudas = scrapedData.passo4TransplanteMudas || scrapedData.passo4CuidadosBrotoDesbaste || '';
+    this.formData.passo5CrescimentoManejo = scrapedData.passo5CrescimentoManejo || scrapedData.passo5AclimatizacaoVasoDefinitivo || scrapedData.passo7NutricaoPoda || '';
+    this.formData.passo6FloracaoColheita = scrapedData.passo6FloracaoColheita || scrapedData.passo8FloracaoColheita || '';
     this.formData.cuidadosDiaADia = scrapedData.cuidadosDiaADia || '';
     this.formData.fonteDadosScraping = scrapedData.fonteDadosScraping || '';
     this.formData.isGeradoPorIa = !!scrapedData.isGeradoPorIa;
+    this.camposOrigemIa = scrapedData.camposOrigemIa || {};
 
     if (!this.formData.apelidoLote || this.formData.apelidoLote.startsWith('Mudas de ')) {
       this.formData.apelidoLote = `Mudas de ${scrapedData.nomePopular} - Lote 01`;

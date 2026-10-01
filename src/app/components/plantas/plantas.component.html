@@ -1,6 +1,6 @@
 <!-- Top Hero Header -->
 <header class="bg-agrotech-primary text-white py-4 shadow-sm mb-4">
-  <div class="container d-flex justify-content-between align-items-center">
+  <div class="container d-flex justify-content-between align-items-center mobile-stack-header">
     <div>
       <h1 class="h3 mb-0 fw-bold"><i class="fa-solid fa-seedling me-2"></i> AgroTech — Gestão de Mudas e Cultivos</h1>
       <p class="mb-0 text-white-50 small">Monitoramento inteligente e cadastro assistido por IA botânica</p>
@@ -20,7 +20,7 @@
     <h3 class="fw-bold text-dark">Nenhuma muda ou planta cadastrada</h3>
     <p class="text-muted">Comece cadastrando suas pequenas plantações para acompanhar os parâmetros ideais de umidade e temperatura.</p>
     <div>
-      <button class="btn btn-success px-4 rounded-pill shadow-sm" (click)="cadastrar()">
+      <button class="btn btn-success px-4 rounded-pill shadow-sm mobile-full-btn" (click)="cadastrar()">
         <i class="fa-solid fa-plus me-1"></i> Cadastrar
       </button>
     </div>
@@ -34,7 +34,7 @@
 
   <!-- Cards de Plantas (Clicáveis, Sem botões de edição/exclusão nos cards) -->
   <div class="row g-4" *ngIf="!isLoading && plantas.length > 0">
-    <div class="col-md-6 col-lg-4" *ngFor="let planta of plantas">
+    <div class="col-12 col-md-6 col-lg-4" *ngFor="let planta of plantas">
       <div class="card card-agrotech h-100 bg-white border-0 shadow-sm rounded-4 cursor-pointer planta-card overflow-hidden" (click)="verDetalhes(planta.id)">
         <div *ngIf="planta.imagemUrl" class="position-relative">
           <img [src]="planta.imagemUrl" alt="Foto de {{ planta.especieNomePopular }}" class="w-100" style="height: 130px; object-fit: cover;" />
@@ -74,7 +74,7 @@
           </p>
         </div>
 
-        <div class="card-footer bg-light border-0 py-2 px-3 d-flex justify-content-between text-muted small rounded-bottom-4">
+        <div class="card-footer bg-light border-0 py-2 px-3 d-flex justify-content-between align-items-center text-muted small rounded-bottom-4">
           <span><i class="fa-regular fa-calendar-check me-1"></i> Cadastrado em {{ (planta.criadoEm | date:'dd/MM/yyyy') || 'Recente' }}</span>
           <span class="text-success fw-medium"><i class="fa-solid fa-circle-check me-1"></i> Ativo</span>
         </div>
