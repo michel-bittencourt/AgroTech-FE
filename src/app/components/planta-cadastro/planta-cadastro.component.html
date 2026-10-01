@@ -191,7 +191,7 @@
             <!-- Selo de Origem dos Dados / IA -->
             <span *ngIf="formData.fonteDadosScraping"
                   [ngStyle]="formData.isGeradoPorIa ? {'background-color': '#ede9fe', 'color': '#5b21b6', 'border': '1px solid #8b5cf6', 'font-weight': '700'} : {}"
-                  [class]="formData.isGeradoPorIa ? 'badge px-3 py-2 rounded-pill shadow-sm' : 'badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill shadow-sm'">
+                  [class]="formData.isGeradoPorIa ? 'badge badge-responsive-text px-3 py-2 rounded-pill shadow-sm' : 'badge badge-responsive-text bg-success-subtle text-success border border-success px-3 py-2 rounded-pill shadow-sm'">
               <i [class]="formData.isGeradoPorIa ? 'fa-solid fa-wand-magic-sparkles me-1' : 'fa-solid fa-globe me-1 text-success'" [style.color]="formData.isGeradoPorIa ? '#5b21b6' : ''"></i>
               {{ formData.isGeradoPorIa ? '✨ Obtido via IA (Gemini Pro)' : '🌐 Origem: Base Científica Oficial (GBIF / Flora do Brasil)' }}
             </span>
@@ -380,7 +380,7 @@
     </div>
 
     <!-- Botões Inferiores -->
-    <div class="d-flex justify-content-end gap-2 pt-3 border-top mt-4 mobile-stack-actions">
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top mt-4 mb-3 mobile-stack-actions">
       <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="voltar()">Cancelar</button>
       <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" (click)="salvar()" [disabled]="isSaving || isUploadingImagem">
         <i [class]="isSaving ? 'fa-solid fa-circle-notch spin-icon me-1' : 'fa-solid fa-floppy-disk me-1'"></i> {{ isSaving ? 'Cadastrando...' : 'Cadastrar' }}
