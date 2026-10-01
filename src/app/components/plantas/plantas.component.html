@@ -5,9 +5,14 @@
       <h1 class="h3 mb-0 fw-bold"><i class="fa-solid fa-seedling me-2"></i> AgroTech — Gestão de Mudas e Cultivos</h1>
       <p class="mb-0 text-white-50 small">Monitoramento inteligente e cadastro assistido por IA botânica</p>
     </div>
-    <button class="btn btn-light text-success fw-bold px-4 rounded-pill shadow-sm" (click)="cadastrar()">
-      <i class="fa-solid fa-plus me-1"></i> Cadastrar
-    </button>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-light btn-sm rounded-pill px-3" (click)="configurarApiUrl()" title="Configurar URL do Servidor API / Túnel Cloudflare">
+        <i class="fa-solid fa-link me-1"></i> Servidor API
+      </button>
+      <button class="btn btn-light text-success fw-bold px-4 rounded-pill shadow-sm" (click)="cadastrar()">
+        <i class="fa-solid fa-plus me-1"></i> Cadastrar
+      </button>
+    </div>
   </div>
 </header>
 

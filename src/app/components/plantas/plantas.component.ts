@@ -49,4 +49,21 @@ export class PlantasComponent implements OnInit {
   verDetalhes(id: string): void {
     this.router.navigate(['/plantas', id]);
   }
+
+  configurarApiUrl(): void {
+    const atual = this.agroTechService.apiUrl;
+    const novaUrl = prompt('Informe a URL base da API / Túnel Cloudflare (ex: https://seu-tunel.trycloudflare.com/api):', atual);
+    if (novaUrl !== null) {
+      if (novaUrl.trim().length > 0) {
+        let cleanUrl = novaUrl.trim().replace(/\/$/, '');
+        if (!cleanUrl.endsWith('/api')) {
+          cleanUrl += '/api';
+        }
+        localStorage.setItem('AGROTECH_API_URL', cleanUrl);
+      } else {
+        localStorage.removeItem('AGROTECH_API_URL');
+      }
+      this.carregarPlantas();
+    }
+  }
 }
