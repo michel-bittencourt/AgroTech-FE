@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AgroTechService } from '../../services/agrotech.service';
 import { Planta } from '../../models/agrotech.models';
@@ -7,13 +8,16 @@ import { Planta } from '../../models/agrotech.models';
 @Component({
   selector: 'app-plantas',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './plantas.component.html',
   styleUrls: ['./plantas.component.scss']
 })
 export class PlantasComponent implements OnInit {
   plantas: Planta[] = [];
   isLoading = true;
+
+  showApiModal = false;
+  inputApiUrl = '';
 
   constructor(
     private agroTechService: AgroTechService,
@@ -50,20 +54,32 @@ export class PlantasComponent implements OnInit {
     this.router.navigate(['/plantas', id]);
   }
 
-  configurarApiUrl(): void {
-    const atual = this.agroTechService.apiUrl;
-    const novaUrl = prompt('Informe a URL base da API / Túnel Cloudflare (ex: https://seu-tunel.trycloudflare.com/api):', atual);
-    if (novaUrl !== null) {
-      if (novaUrl.trim().length > 0) {
-        let cleanUrl = novaUrl.trim().replace(/\/$/, '');
-        if (!cleanUrl.endsWith('/api')) {
-          cleanUrl += '/api';
-        }
-        localStorage.setItem('AGROTECH_API_URL', cleanUrl);
-      } else {
-        localStorage.removeItem('AGROTECH_API_URL');
-      }
+  abrirModalApi(): void {
+    this.inputApiUrl = this.agroTechService.apiUrl;
+    this.showApiModal = true;
+    this.cdr.detectChanges();
+  }
+
+  fecharModalApi(): void {
+    this.showApiModal = false;
+    this.cdr.detectChanges();
+  }
+
+  salvarEConectarApi(): void {
+    if (!this.inputApiUrl.trim()) {
+      localStorage.removeItem('AGROTECH_API_URL');
+      this.fecharModalApi();
       this.carregarPlantas();
+      return;
     }
+
+    let cleanUrl = this.inputApiUrl.trim().replace(/\/$/, '');
+    if (!cleanUrl.endsWith('/api')) {
+      cleanUrl += '/api';
+    }
+
+    localStorage.setItem('AGROTECH_API_URL', cleanUrl);
+    this.fecharModalApi();
+    this.carregarPlantas();
   }
 }

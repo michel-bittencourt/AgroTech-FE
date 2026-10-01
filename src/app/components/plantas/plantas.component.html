@@ -6,7 +6,7 @@
       <p class="mb-0 text-white-50 small">Monitoramento inteligente e cadastro assistido por IA botânica</p>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-light btn-sm rounded-pill px-3" (click)="configurarApiUrl()" title="Configurar URL do Servidor API / Túnel Cloudflare">
+      <button class="btn btn-outline-light btn-sm rounded-pill px-3" (click)="abrirModalApi()" title="Configurar URL do Servidor API / Túnel Cloudflare">
         <i class="fa-solid fa-link me-1"></i> Servidor API
       </button>
       <button class="btn btn-light text-success fw-bold px-4 rounded-pill shadow-sm" (click)="cadastrar()">
@@ -84,6 +84,35 @@
           <span class="text-success fw-medium"><i class="fa-solid fa-circle-check me-1"></i> Ativo</span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configuração da URL da API -->
+<div *ngIf="showApiModal" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-3" style="background-color: rgba(0,0,0,0.5);">
+  <div class="card border-0 shadow-lg rounded-4 p-4 bg-white" style="max-width: 520px; width: 90%;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-network-wired text-success"></i>
+        <span>Configurar Servidor API</span>
+      </h5>
+      <button type="button" class="btn-close" (click)="fecharModalApi()"></button>
+    </div>
+    <p class="text-muted small mb-3">
+      Informe a URL pública HTTPS do seu túnel Cloudflare para conectar a Vercel ao seu backend local.
+    </p>
+
+    <div class="mb-4">
+      <label class="form-label small fw-bold text-secondary">URL Base da API</label>
+      <input type="text" class="form-control form-control-lg rounded-3 fs-6" placeholder="https://xxxx.trycloudflare.com/api" [(ngModel)]="inputApiUrl" />
+      <div class="form-text text-muted mt-2" style="font-size: 11px;">
+        Exemplo: <code>https://citizenship-edited-necessarily-workout.trycloudflare.com/api</code>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mobile-stack-actions">
+      <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" (click)="fecharModalApi()">Cancelar</button>
+      <button type="button" class="btn btn-success px-4 rounded-pill shadow-sm" (click)="salvarEConectarApi()">Salvar & Conectar</button>
     </div>
   </div>
 </div>
