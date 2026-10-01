@@ -17,9 +17,7 @@ export class AgroTechService {
   }
 
   private get defaultHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Bypass-Tunnel-Reminder': 'true'
-    });
+    return new HttpHeaders();
   }
 
   constructor(private http: HttpClient) {}
