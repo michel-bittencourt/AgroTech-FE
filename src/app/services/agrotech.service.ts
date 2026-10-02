@@ -17,7 +17,14 @@ export class AgroTechService {
   }
 
   private get defaultHeaders(): HttpHeaders {
-    return new HttpHeaders();
+    let headers = new HttpHeaders();
+    const custom = typeof localStorage !== 'undefined' ? localStorage.getItem('AGROTECH_API_URL') : null;
+    if (custom && custom.trim().length > 0) {
+      // Modo túnel local (localtunnel/ngrok): header obrigatório para bypass da página de aviso do localtunnel.
+      // Aplicado SOMENTE no modo túnel para não alterar o comportamento em produção (evita preflight global).
+      headers = headers.set('bypass-tunnel-reminder', '1');
+    }
+    return headers;
   }
 
   constructor(private http: HttpClient) {}
