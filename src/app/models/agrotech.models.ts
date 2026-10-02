@@ -3,6 +3,19 @@ export interface EspecieSugestao {
   nomeCientifico: string;
 }
 
+export interface ScrapingProgresso {
+  percentual: number;
+  etapa: string;
+  mensagem: string;
+  concluido: boolean;
+  erro: boolean;
+  mensagemErro?: string | null;
+  tempoEstimadoSegundos: number;
+  fontesConcluidas: number;
+  totalFontes: number;
+  decorridoSegundos: number;
+}
+
 export interface EspecieScraped {
   nomePopular: string;
   nomeCientifico?: string;

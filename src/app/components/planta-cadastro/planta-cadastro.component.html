@@ -93,7 +93,7 @@
 
         <div class="form-text text-muted mt-2">
           <i class="fa-solid fa-circle-info text-success me-1"></i>
-          Selecione a planta na lista para preencher automaticamente as recomendações de cultivo.
+          Clique na espécie desejada acima ou selecione no menu para preencher automaticamente as recomendações de cultivo.
         </div>
       </div>
     </div>
@@ -150,12 +150,23 @@
       </div>
 
       <!-- Titulo e Mensagem de Etapa -->
-      <h5 class="fw-bold text-success mb-2 d-flex align-items-center justify-content-center gap-2">
+      <h5 class="fw-bold text-success mb-1 d-flex align-items-center justify-content-center gap-2">
         <i class="fa-solid fa-wand-magic-sparkles text-warning me-1"></i>
         <span>{{ mensagemProgresso }}</span>
       </h5>
+
+      <!-- Etapa atual e contador de fontes (progresso real do backend) -->
+      <div class="d-flex justify-content-center gap-3 flex-wrap mb-2" *ngIf="progressoEtapa">
+        <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill small">
+          <i class="fa-solid fa-layer-group me-1"></i> {{ progressoEtapa }}
+        </span>
+        <span *ngIf="progressoFontes" class="badge bg-info-subtle text-info border border-info px-3 py-2 rounded-pill small">
+          <i class="fa-solid fa-database me-1"></i> {{ progressoFontes }}
+        </span>
+      </div>
+
       <p class="text-muted small mb-3">
-        Buscando o máximo de dados oficiais em sites botânicos e refinando com IA Agronômica.
+        Coleta profunda em 3 etapas: scraping HTML nos sites &rarr; comparação com APIs científicas (JBRJ + GBIF + WFO + iNaturalist + EOL + Wikidata) &rarr; organização e sanitização final com IA Agronômica.
       </p>
 
       <!-- Barra de Progresso Animada -->
@@ -243,76 +254,99 @@
 
             <div class="col-12">
               <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                <span>Instruções e Recomendações de Manejo</span>
+                <span>Instruções e Recomendações de Manejo (Visão Geral da Jornada Completa)</span>
                 <span *ngIf="isCampo100PercentIa('instrucoesManejo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
                 <span *ngIf="isCampoBaseOficial('instrucoesManejo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
               </label>
               <textarea class="form-control" rows="3" [(ngModel)]="formData.instrucoesManejo"></textarea>
             </div>
 
-            <!-- Guia de Cultivo Passo a Passo (Receita de Bolo Completa) -->
+            <!-- Guia de Cultivo Passo a Passo (Da Semente na Loja até a Colheita & Manutenção) -->
             <div class="col-12 mt-4">
               <div class="p-3 bg-white border rounded-3 shadow-sm">
-                <h6 class="fw-bold text-success mb-3 d-flex align-items-center gap-2">
+                <h6 class="fw-bold text-success mb-1 d-flex align-items-center gap-2">
                   <i class="fa-solid fa-list-check"></i>
-                  <span>Guia Técnico de Cultivo & Receita de Bolo (Preenchidos pela IA / Editáveis)</span>
+                  <span>Guia Técnico de Cultivo — Da Escolha da Semente na Loja até a Colheita & Manutenção</span>
                 </h6>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                      <span>🌱 Passo 1: Preparo da Semente & Quebra de Dormência</span>
-                      <span *ngIf="isCampo100PercentIa('passo1PreparoSemente')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('passo1PreparoSemente')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                <p class="text-muted small mb-3">
+                  Passo a passo completo gerado pela IA e editável: cada etapa traz materiais (ideal e caseiro), modo de fazer com medidas, quando fazer, erros comuns e os sinais de que deu certo.
+                </p>
+                <div>
+                  <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span>🛒 Passo 1: Na Loja — Escolha da Semente & Primeiros Cuidados</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('passo1PreparoSemente')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('passo1PreparoSemente')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo1PreparoSemente" placeholder="Materiais ideais vs. caseiros, hidratação/quebra de dormência e modo de preparo tipo receita de bolo..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.passo1PreparoSemente" placeholder="🛒 Materiais & onde comprar (ideal vs. caseiro, preço de referência, selo MAPA, validade)... 🧑‍🌾 Modo de fazer numerado... 📅 Quando fazer... ⚠️ Erros comuns... ✅ Sinais de que deu certo..."></textarea>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                      <span>🪴 Passo 2: Preparo do Substrato & Sementeira</span>
-                      <span *ngIf="isCampo100PercentIa('passo2PreparoSolo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('passo2PreparoSolo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+
+                  <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span>🪴 Passo 2: Preparo do Substrato & Sementeira (Receita de Bolo)</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('passo2PreparoSolo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('passo2PreparoSolo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo2PreparoSolo" placeholder="Escolha da sementeira/copinhos, mistura do substrato leve com copos/gramas em balança, drenagem ideal e alternativas..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.passo2PreparoSolo" placeholder="🛒 Materiais com medidas exatas (copos de requeijão, gramas, litros)... 🧑‍🌾 Receita passo a passo... 📅 Quando fazer... ⚠️ Erros comuns... ✅ Sinais de que deu certo..."></textarea>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                      <span>💧 Passo 3: Semeadura & Germinação</span>
-                      <span *ngIf="isCampo100PercentIa('passo3SemeaduraGerminacao')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('passo3SemeaduraGerminacao')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+
+                  <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span>💧 Passo 3: Semeadura & Germinação (Dia a Dia do Broto)</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('passo3SemeaduraGerminacao')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('passo3SemeaduraGerminacao')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo3SemeaduraGerminacao" placeholder="Profundidade exata (cm ou dedos), rega com borrifador, iluminação e modo de fazer..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.passo3SemeaduraGerminacao" placeholder="🧑‍🌾 Profundidade exata (cm), sementes por célula, rega com borrifador... 📅 Dias até germinar e o que checar a cada dia... ⚠️ Erros comuns... ✅ Sinais de que deu certo..."></textarea>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                      <span>🌿 Passo 4: Transplante & Aclimatação de Mudas</span>
-                      <span *ngIf="isCampo100PercentIa('passo6TransplanteMudas') || isCampo100PercentIa('passo4CuidadosBrotoDesbaste')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('passo6TransplanteMudas') && isCampoBaseOficial('passo4CuidadosBrotoDesbaste')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+
+                  <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span>🌿 Passo 4: Endurecimento, Transplante & Local Definitivo</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('passo6TransplanteMudas') || isCampo100PercentIa('passo4CuidadosBrotoDesbaste')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('passo6TransplanteMudas') && isCampoBaseOficial('passo4CuidadosBrotoDesbaste')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo4TransplanteMudas" placeholder="Contagem de folhas verdadeiras, endurecimento da muda e desencastelar raízes enoveladas no fundo..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.passo4TransplanteMudas" placeholder="🧑‍🌾 Quando transplantar (folhas verdadeiras + altura em cm), cronograma de sol, técnica da colher para raízes... 🪴 Vaso/litros, espaçamento em cm, receita do solo definitivo... ⚠️ Erros comuns... ✅ Sinais de que deu certo..."></textarea>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                      <span>☀️ Passo 5: Crescimento, Podas & Nutrição</span>
-                      <span *ngIf="isCampo100PercentIa('passo7NutricaoPoda') || isCampo100PercentIa('passo5AclimatizacaoVasoDefinitivo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('passo7NutricaoPoda') && isCampoBaseOficial('passo5AclimatizacaoVasoDefinitivo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+
+                  <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span>☀️ Passo 5: Crescimento — Rega, Podas, Nutrição & Defesa contra Pragas</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('passo7NutricaoPoda') || isCampo100PercentIa('passo5AclimatizacaoVasoDefinitivo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('passo7NutricaoPoda') && isCampoBaseOficial('passo5AclimatizacaoVasoDefinitivo')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo5CrescimentoManejo" placeholder="Podas apicais/beliscão para multiplicar ramos/frutos, adubação de crescimento e prevenção sanitária..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.passo5CrescimentoManejo" placeholder="🧑‍🌾 Rega (volume/frequência), poda apical, tutor... 🧪 Cronograma de adubação com doses caseiras (borra de café, casca de banana)... 🐛 Pragas comuns da espécie + receitas de defesa (sabão neutro, óleo de neem)... ⚠️ Erros comuns... ✅ Sinais de que deu certo..."></textarea>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary d-flex align-items-center justify-content-between">
-                      <span>🌸 Passo 6: Floração, Frutificação & Colheita</span>
-                      <span *ngIf="isCampo100PercentIa('passo8FloracaoColheita')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('passo8FloracaoColheita')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+
+                  <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span>🌸 Passo 6: Floração, Colheita & Manutenção da Produção</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('passo8FloracaoColheita')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('passo8FloracaoColheita')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.passo6FloracaoColheita" placeholder="Estímulo de floração, polinização, fixação de frutos e ponto ideal de colheita..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.passo6FloracaoColheita" placeholder="🌸 Como estimular floração e polinizar (se precisar)... 🧺 Sinais exatos do ponto de colheita (cor, tamanho, dias), como colher e armazenar... 🔁 Como manter produzindo (poda pós-colheita, adubação de recuperação, quando replantar)... ✅ Sinais de que deu certo..."></textarea>
                   </div>
-                  <div class="col-12 mt-3">
-                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between">
-                      <span><i class="fa-solid fa-sun text-warning me-1"></i> Cuidados do Dia a Dia (Rotina Diária & Prevenção Sanitária)</span>
-                      <span *ngIf="isCampo100PercentIa('cuidadosDiaADia')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
-                      <span *ngIf="isCampoBaseOficial('cuidadosDiaADia')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+
+                  <div class="border rounded-3 p-3 bg-light border-success-subtle">
+                    <label class="form-label small fw-bold text-success d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <span><i class="fa-solid fa-sun text-warning me-1"></i> Rotina Diária & Diagnóstico Rápido de Problemas</span>
+                      <span class="d-flex gap-1">
+                        <span *ngIf="isCampo100PercentIa('cuidadosDiaADia')" class="badge ms-1 px-2 py-1 rounded-pill" title="Campo 100% gerado pela IA (Gemini Pro)" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>100% IA</span>
+                        <span *ngIf="isCampoBaseOficial('cuidadosDiaADia')" class="badge ms-1 px-2 py-1 rounded-pill" title="Informação refinada a partir de Portais Científicos Oficiais (JBRJ/GBIF/Embrapa)" style="background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; font-size: 10px; font-weight: 600;"><i class="fa-solid fa-globe me-1"></i>Base Oficial</span>
+                      </span>
                     </label>
-                    <textarea class="form-control form-control-sm" rows="4" [(ngModel)]="formData.cuidadosDiaADia" placeholder="Rotina diária de checagem de umidade, horários de rega, insolação e inspeção visual preventiva..."></textarea>
+                    <textarea class="form-control form-control-sm" rows="9" [(ngModel)]="formData.cuidadosDiaADia" placeholder="📋 Checklist diário (manhã/tarde, 2-3 min)... 📅 Checklist semanal e mensal... 🔍 Diagnóstico rápido: folha amarela = ?, pontas secas = ?, manchas = ?, mofo = ? + ação imediata de cada sintoma..."></textarea>
                   </div>
                 </div>
               </div>

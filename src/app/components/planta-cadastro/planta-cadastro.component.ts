@@ -39,22 +39,26 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
   // URL da API para construir URLs absolutas de imagens
   readonly apiBaseUrl = environment.apiUrl.replace('/api', '');
 
-  // Medidor de Progresso e Cronômetro da Coleta Botânica
   progressoPercentual = 0;
   mensagemProgresso = '';
   tempoDecorrido = 0;
-  readonly tempoEstimado = 15;
   private startTime = 0;
   private timerInterval: any;
   private progressInterval: any;
+  private pollingProgressoInterval: any;
+
+  // Progresso real (backend publica etapas/fontes em tempo real)
+  progressoEtapa = '';
+  progressoFontes = '';
+  tempoEstimado = 120;
 
   get tempoDecorridoDisplay(): string {
-    return this.tempoDecorrido.toFixed(1) + 's';
+    return this.tempoDecorrido.toFixed(0) + 's';
   }
 
   get tempoEstimadoDisplay(): string {
     const restante = Math.max(0, this.tempoEstimado - this.tempoDecorrido);
-    return restante.toFixed(1) + 's';
+    return restante.toFixed(0) + 's';
   }
 
   termoBuscaEspecie = '';
@@ -102,6 +106,7 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.limparTimerProgresso();
+    this.pararPollingProgresso();
     this.searchSubject.complete();
   }
 
@@ -250,37 +255,98 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     this.showDropdownSugestoes = false;
     this.showSelectSugestoes = false;
 
+    this.iniciarScrapingComProgresso(sugestao);
+  }
+
+  // ─── Coleta Profunda com Progresso Real (polling do backend) ─────────────────
+
+  private iniciarScrapingComProgresso(sugestao: EspecieSugestao): void {
+    this.limparTimerProgresso();
+    this.isLoadingScraping = true;
+    this.erroScrapingMensagem = null;
+    this.progressoPercentual = 2;
+    this.tempoDecorrido = 0;
+    this.progressoEtapa = 'Preparando coleta profunda';
+    this.progressoFontes = '13 fontes mundiais selecionadas';
+    this.mensagemProgresso = '🚀 Iniciando coleta multi-fonte (6 sites via scraping HTML + 7 bases científicas + IA)...';
+    this.startTime = Date.now();
+    this.tempoEstimado = 120;
+    this.cdr.detectChanges();
+
+    this.agroTechService.iniciarScrapingComProgresso(sugestao.nomePopular, sugestao.nomeCientifico).subscribe({
+      next: (res) => {
+        this.tempoEstimado = res.tempoEstimadoSegundos || 120;
+        this.iniciarPollingProgresso(res.sessaoId, sugestao);
+      },
+      error: (err) => {
+        console.error('[PlantaCadastroComponent] Falha ao iniciar coleta com progresso. Usando modo direto:', err);
+        this.executarScrapingDireto(sugestao);
+      }
+    });
+  }
+
+  private iniciarPollingProgresso(sessaoId: string, sugestao: EspecieSugestao): void {
+    this.pollingProgressoInterval = setInterval(() => {
+      this.agroTechService.getProgressoScraping(sessaoId).subscribe({
+        next: (p) => {
+          this.progressoPercentual = p.percentual;
+          this.progressoEtapa = p.etapa;
+          this.progressoFontes = `Fontes concluídas: ${p.fontesConcluidas}/${p.totalFontes}`;
+          this.mensagemProgresso = p.mensagem;
+          this.tempoEstimado = p.tempoEstimadoSegundos;
+          this.tempoDecorrido = p.decorridoSegundos;
+
+          if (p.erro) {
+            this.pararPollingProgresso();
+            this.finalizarProgressoErro(p.mensagemErro || 'Falha na coleta profunda de dados.');
+          } else if (p.concluido) {
+            this.pararPollingProgresso();
+            this.buscarResultadoScraping(sessaoId);
+          }
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          // Sessão não encontrada/expirada — cai para o modo direto
+          this.pararPollingProgresso();
+          this.executarScrapingDireto(sugestao);
+        }
+      });
+    }, 1000);
+  }
+
+  private buscarResultadoScraping(sessaoId: string): void {
+    this.agroTechService.getResultadoScraping(sessaoId).subscribe({
+      next: (res) => {
+        if ('pronto' in res && res.pronto === false) {
+          setTimeout(() => this.buscarResultadoScraping(sessaoId), 1000);
+          return;
+        }
+        this.finalizarProgressoSucesso(res as EspecieScraped);
+      },
+      error: (err) => {
+        console.error('[PlantaCadastroComponent] Erro ao obter resultado da coleta:', err);
+        this.finalizarProgressoErro('Não foi possível obter o resultado da coleta profunda.');
+      }
+    });
+  }
+
+  private pararPollingProgresso(): void {
+    if (this.pollingProgressoInterval) {
+      clearInterval(this.pollingProgressoInterval);
+      this.pollingProgressoInterval = null;
+    }
+  }
+
+  private executarScrapingDireto(sugestao: EspecieSugestao): void {
     this.iniciarProgresso(sugestao.nomePopular);
 
     this.agroTechService.scrapeEspecie(sugestao.nomePopular, sugestao.nomeCientifico)
       .pipe(
         retry({ count: 1, delay: 1500 }),
-        timeout(120000)
+        timeout(180000)
       )
       .subscribe({
         next: (scrapedData: EspecieScraped) => {
-          const camposMap = scrapedData.camposOrigemIa || {};
-
-          console.group('%c🌐 [AgroTech - Relatório de Fontes Oficiais & Origem dos Campos]', 'color: #059669; font-weight: bold; font-size: 14px;');
-          console.log('%c🏛️ Fontes Científicas Consultadas:', 'color: #0284c7; font-weight: bold;', scrapedData.fonteDadosScraping);
-          console.log('%c🌱 Planta / Espécie:', 'color: #16a34a; font-weight: bold;', `${scrapedData.nomePopular} (${scrapedData.nomeCientifico || 'Taxonomia Oficial'})`);
-
-          const auditData = [
-            { Campo: 'Umidade do Solo (Min/Max)', Origem: camposMap['umidadeSolo'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Temperatura Ideal (Min/Max)', Origem: camposMap['temperatura'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Instruções e Recomendações de Manejo', Origem: camposMap['instrucoesManejo'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Passo 1: Preparo da Semente', Origem: camposMap['passo1PreparoSemente'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Passo 2: Preparo do Substrato', Origem: camposMap['passo2PreparoSolo'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Passo 3: Semeadura & Germinação', Origem: camposMap['passo3SemeaduraGerminacao'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Passo 4: Transplante & Mudas', Origem: (camposMap['passo6TransplanteMudas'] ?? camposMap['passo4CuidadosBrotoDesbaste']) ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Passo 5: Podas, Nutrição & Manejo', Origem: (camposMap['passo7NutricaoPoda'] ?? camposMap['passo5AclimatizacaoVasoDefinitivo']) ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Passo 6: Floração & Colheita', Origem: camposMap['passo8FloracaoColheita'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-            { Campo: 'Cuidados do Dia a Dia', Origem: camposMap['cuidadosDiaADia'] ? '✨ 100% Gerado por IA' : '🌐 Base Oficial (Refinado de dados botânicos)' },
-          ];
-
-          console.table(auditData);
-          console.groupEnd();
-
           this.finalizarProgressoSucesso(scrapedData);
         },
         error: (err) => {
@@ -365,7 +431,10 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
     this.erroScrapingMensagem = null;
     this.progressoPercentual = 15;
     this.tempoDecorrido = 0;
-    this.mensagemProgresso = '🌐 Consultando a taxonomia oficial no Jardim Botânico do Rio de Janeiro (Flora do Brasil)...';
+    this.tempoEstimado = 90;
+    this.progressoEtapa = 'Coleta direta (modo compatibilidade)';
+    this.progressoFontes = '';
+    this.mensagemProgresso = '🕷️ Etapa 1 de 3: acessando os sites (Wikipédia PT/EN + Portal Embrapa) e raspando o HTML da espécie...';
     this.startTime = Date.now();
 
     this.timerInterval = setInterval(() => {
@@ -375,16 +444,16 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
 
     this.progressInterval = setInterval(() => {
       if (this.progressoPercentual < 95) {
-        this.progressoPercentual += 5;
+        this.progressoPercentual += 3;
         const s = this.tempoDecorrido;
-        if (s < 4) {
-          this.mensagemProgresso = '🌐 Consultando a taxonomia oficial no Jardim Botânico do Rio de Janeiro (Flora do Brasil)...';
-        } else if (s >= 4 && s < 8) {
-          this.mensagemProgresso = '🤖 Conectando à IA Agronômica (Gemini API) para calcular os parâmetros de solo, rega e clima...';
-        } else if (s >= 8 && s < 13) {
-          this.mensagemProgresso = `✨ A IA está gerando o guia técnico de 6 passos personalizado para ${nomePlanta || 'a espécie'}...`;
+        if (s < 5) {
+          this.mensagemProgresso = '🕷️ Etapa 1 de 3: acessando os sites (Wikipédia PT/EN + Portal Embrapa) e raspando o HTML da espécie...';
+        } else if (s >= 5 && s < 12) {
+          this.mensagemProgresso = '🏛️ Etapa 2 de 3: comparando a massa coletada com as APIs científicas (Flora do Brasil JBRJ + GBIF)...';
+        } else if (s >= 12 && s < 30) {
+          this.mensagemProgresso = `✨ Etapa 3 de 3: IA Agronômica (Gemini) cruzando as fontes, organizando e sanitizando os dados para ${nomePlanta || 'a espécie'}...`;
         } else {
-          this.mensagemProgresso = '⚡ A consulta está demorando um pouco mais que o normal, mas o processamento continua ativo...';
+          this.mensagemProgresso = '⚡ A coleta profunda está demorando mais que o normal (sites lentos ou IA ocupada), mas o processamento continua ativo...';
         }
         this.cdr.detectChanges();
       }
@@ -492,6 +561,7 @@ export class PlantaCadastroComponent implements OnInit, OnDestroy {
   }
 
   private limparTimerProgresso(): void {
+    this.pararPollingProgresso();
     if (this.progressInterval) {
       clearInterval(this.progressInterval);
       this.progressInterval = null;

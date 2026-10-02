@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Especie, EspecieScraped, EspecieSugestao, Planta, CreatePlantaRequest, DiarioNotaItem, CriarDiarioNotaRequest, AnaliseSaudeIaResponse, DiarioBordoEtapaResponse } from '../models/agrotech.models';
+import { Especie, EspecieScraped, EspecieSugestao, Planta, CreatePlantaRequest, DiarioNotaItem, CriarDiarioNotaRequest, AnaliseSaudeIaResponse, DiarioBordoEtapaResponse, ScrapingProgresso } from '../models/agrotech.models';
 
 @Injectable({
   providedIn: 'root'
@@ -35,6 +35,19 @@ export class AgroTechService {
     return this.http.post<EspecieScraped>(`${this.apiUrl}/especies/scraping`, { nomeBusca, nomeCientifico }, { headers: this.defaultHeaders }).pipe(
       tap(res => console.log(`[AgroTechService] ✅ Dados de scraping recebidos:`, res))
     );
+  }
+
+  iniciarScrapingComProgresso(nomeBusca: string, nomeCientifico?: string): Observable<{ sessaoId: string; tempoEstimadoSegundos: number }> {
+    console.log(`[AgroTechService] 🚀 Iniciando coleta profunda com progresso para "${nomeBusca}" -> ${this.apiUrl}/especies/scraping/iniciar`);
+    return this.http.post<{ sessaoId: string; tempoEstimadoSegundos: number }>(`${this.apiUrl}/especies/scraping/iniciar`, { nomeBusca, nomeCientifico }, { headers: this.defaultHeaders });
+  }
+
+  getProgressoScraping(sessaoId: string): Observable<ScrapingProgresso> {
+    return this.http.get<ScrapingProgresso>(`${this.apiUrl}/especies/scraping/progresso/${sessaoId}`, { headers: this.defaultHeaders });
+  }
+
+  getResultadoScraping(sessaoId: string): Observable<EspecieScraped | { pronto: false }> {
+    return this.http.get<EspecieScraped | { pronto: false }>(`${this.apiUrl}/especies/scraping/resultado/${sessaoId}`, { headers: this.defaultHeaders });
   }
 
   getEspecies(): Observable<Especie[]> {
